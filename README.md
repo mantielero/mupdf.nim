@@ -1,0 +1,2 @@
+# mupdf.nim
+bindings
