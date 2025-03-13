@@ -15,50 +15,46 @@ make examples
 
 ]#
 
-#include <mupdf/fitz.h>
 
-#include <stdio.h>
-#include <stdlib.h>
 
-var 
-  ctx:ptr FzContext
-  doc:ptr FzDocument
+
+
 
 #proc fz_new_context(alloc: ptr fz_alloc_context; locks: ptr fz_locks_context;
 #                        max_store: uint):ptr fz_context = fz_new_context_imp(alloc, locks, max_store.uint, FZ_VERSION)
-
+# Create a context to hold the exception stack and various caches. 
 var
   alloc:ptr FzAllocContext = nil
   locks:ptr FzLocksContext = nil
-ctx = fzNewContext( alloc, locks, FZ_STORE_UNLIMITED.uint )
+
+var ctx:ptr FzContext = fzNewContext( alloc, locks, FZ_STORE_UNLIMITED.uint )
+if ctx == nil:
+  raise newException(ValueError, "cannot create mupdf context")
 
 
+#fzTry(ctx)
+fzRegisterDocumentHandlers(ctx)
+#fzCatch(ctx)
 
 #fz_try(ctx)
-fz_register_document_handlers(ctx)
-#fz_catch(ctx)
-
-#fz_try(ctx)
-doc = fz_open_document(ctx, "helloworld.pdf")
+var doc:ptr FzDocument = fzOpenDocument(ctx, "helloworld.pdf")
 #fz_catch(ctx)
 
 #fz_try(ctx)
 var page_count = fz_count_pages(ctx, doc)
 #fz_catch(ctx)
-#echo "Page count: ", page_count
-
 
 # Compute a transformation matrix for the zoom and rotation desired.
 # The default resolution without scaling is 72 dpi.
 var zoom   = 100
 var rotate = 0.0
-var ctm = fz_scale(zoom / 100, zoom / 100)
+var ctm:FzMatrix = fz_scale(zoom / 100, zoom / 100)
 ctm = fz_pre_rotate(ctm, rotate)
 
-# /* Render page to an RGB pixmap. */
+# Render page to an RGB pixmap.
 # fz_try(ctx)
 var page_number:cint = 0
-var pix:ptr FzPixmap = fz_new_pixmap_from_page_number(ctx, doc, page_number, ctm, fz_device_rgb(ctx), 0)
+var pix:ptr FzPixmap = fzNewPixmapFromPageNumber(ctx, doc, page_number, ctm, fz_device_rgb(ctx), 0)
 # fz_catch(ctx)
 # {
 # 	fprintf(stderr, "cannot render page: %s\n", fz_caught_message(ctx));
@@ -78,17 +74,6 @@ var data = pix.exportPPM()
 
 
 #[
-int main(int argc, char **argv)
-{
-	char *input;
-	float zoom, rotate;
-	int page_number, page_count;
-	fz_context *ctx;
-	fz_document *doc;
-	fz_pixmap *pix;
-	fz_matrix ctm;
-	int x, y;
-
 	if (argc < 3)
 	{
 		fprintf(stderr, "usage: example input-file page-number [ zoom [ rotate ] ]\n");
@@ -103,14 +88,9 @@ int main(int argc, char **argv)
 	page_number = atoi(argv[2]) - 1;
 	zoom = argc > 3 ? atof(argv[3]) : 100;
 	rotate = argc > 4 ? atof(argv[4]) : 0;
+]#
 
-	/* Create a context to hold the exception stack and various caches. */
-	ctx = fz_new_context(NULL, NULL, FZ_STORE_UNLIMITED);
-	if (!ctx)
-	{
-		fprintf(stderr, "cannot create mupdf context\n");
-		return EXIT_FAILURE;
-	}
+#[
 
 	/* Register the default file types to handle. */
 	fz_try(ctx)
@@ -167,22 +147,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	/* Print image data in ascii PPM format. */
-	printf("P3\n");
-	printf("%d %d\n", pix->w, pix->h);
-	printf("255\n");
-	for (y = 0; y < pix->h; ++y)
-	{
-		unsigned char *p = &pix->samples[y * pix->stride];
-		for (x = 0; x < pix->w; ++x)
-		{
-			if (x > 0)
-				printf("  ");
-			printf("%3d %3d %3d", p[0], p[1], p[2]);
-			p += pix->n;
-		}
-		printf("\n");
-	}
+
 
 	/* Clean up. */
 	fz_drop_pixmap(ctx, pix);
@@ -191,3 +156,9 @@ int main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }    
 ]#
+
+# TODO: should this be handled by means of `=destroy`?
+fzDropPixmap(ctx, pix)
+fzDropDocument(ctx, doc)
+fzDropContext(ctx)
+#echo "ok"

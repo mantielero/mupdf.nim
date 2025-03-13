@@ -1,5 +1,0 @@
-#ifdef C2NIM
-#cdecl
-#def FZ_LOG_STORE
-#assumndef _MSC_VER 
-#endif

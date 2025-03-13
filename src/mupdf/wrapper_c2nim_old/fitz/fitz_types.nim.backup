@@ -1,0 +1,2387 @@
+type
+  FzZipWriter* = fzZipWriter
+## *
+## 	Create a new zip writer that writes to a given file.
+##
+## 	Open an archive using a seekable stream object rather than
+## 	opening a file or directory on disk.
+##
+type
+  FzArchive* {.importc: "fz_archive", header: "archive.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    file* {.importc: "file".}: ptr FzStream
+    format* {.importc: "format".}: cstring
+    dropArchive* {.importc: "drop_archive".}: proc (ctx: ptr FzContext;
+        arch: ptr FzArchive) {.cdecl.}
+    countEntries* {.importc: "count_entries".}: proc (ctx: ptr FzContext;
+        arch: ptr FzArchive): cint {.cdecl.}
+    listEntry* {.importc: "list_entry".}: proc (ctx: ptr FzContext;
+        arch: ptr FzArchive; idx: cint): cstring {.cdecl.}
+    hasEntry* {.importc: "has_entry".}: proc (ctx: ptr FzContext; arch: ptr FzArchive;
+        name: cstring): cint {.cdecl.}
+    readEntry* {.importc: "read_entry".}: proc (ctx: ptr FzContext;
+        arch: ptr FzArchive; name: cstring): ptr FzBuffer {.cdecl.}
+    openEntry* {.importc: "open_entry".}: proc (ctx: ptr FzContext;
+        arch: ptr FzArchive; name: cstring): ptr FzStream {.cdecl.}
+type
+  FzWriteHeaderFn* = proc (ctx: ptr FzContext; writer: ptr FzBandWriter;
+                        cs: ptr FzColorspace) {.cdecl.}
+  FzWriteBandFn* = proc (ctx: ptr FzContext; writer: ptr FzBandWriter; stride: cint;
+                      bandStart: cint; bandHeight: cint; samples: ptr cuchar) {.cdecl.}
+  FzWriteTrailerFn* = proc (ctx: ptr FzContext; writer: ptr FzBandWriter) {.cdecl.}
+  FzCloseBandWriterFn* = proc (ctx: ptr FzContext; writer: ptr FzBandWriter) {.cdecl.}
+  FzDropBandWriterFn* = proc (ctx: ptr FzContext; writer: ptr FzBandWriter) {.cdecl.}
+  FzBandWriter* {.importc: "fz_band_writer", header: "band-writer.h", bycopy.} = object
+    drop* {.importc: "drop".}: ptr FzDropBandWriterFn
+    close* {.importc: "close".}: ptr FzCloseBandWriterFn
+    header* {.importc: "header".}: ptr FzWriteHeaderFn
+    band* {.importc: "band".}: ptr FzWriteBandFn
+    trailer* {.importc: "trailer".}: ptr FzWriteTrailerFn
+    `out`* {.importc: "out".}: ptr FzOutput
+    w* {.importc: "w".}: cint
+    h* {.importc: "h".}: cint
+    n* {.importc: "n".}: cint
+    s* {.importc: "s".}: cint
+    alpha* {.importc: "alpha".}: cint
+    xres* {.importc: "xres".}: cint
+    yres* {.importc: "yres".}: cint
+    pagenum* {.importc: "pagenum".}: cint
+    line* {.importc: "line".}: cint
+    seps* {.importc: "seps".}: ptr FzSeparations
+type
+  FzBidiDirection* {.size: sizeof(cint).} = enum
+    FZ_BIDI_LTR = 0, FZ_BIDI_RTL = 1, FZ_BIDI_NEUTRAL = 2
+  FzBidiFlags* {.size: sizeof(cint).} = enum
+    FZ_BIDI_CLASSIFY_WHITE_SPACE = 1, FZ_BIDI_REPLACE_TAB = 2
+## *
+## 	Prototype for callback function supplied to fz_bidi_fragment_text.
+##
+## 	@param	fragment	first character in fragment
+## 	@param	fragmentLen	number of characters in fragment
+## 	@param	bidiLevel	The bidirectional level for this text.
+## 				The bottom bit will be set iff block
+## 				should concatenate with other blocks as
+## 				right-to-left
+## 	@param	script		the script in use for this fragment (other
+## 				than common or inherited)
+## 	@param	arg		data from caller of Bidi_fragmentText
+##
+type
+  FzBidiFragmentFn* = proc (fragment: ptr uint32T; fragmentLen: csize_t;
+                         bidiLevel: cint; script: cint; arg: pointer) {.cdecl.}
+## *
+## 	Partitions the given Unicode sequence into one or more
+## 	unidirectional fragments and invokes the given callback
+## 	function for each fragment.
+##
+## 	For example, if directionality of text is:
+## 			0123456789
+## 			rrlllrrrrr,
+## 	we'll invoke callback with:
+## 			&text[0], length == 2
+## 			&text[2], length == 3
+## 			&text[5], length == 5
+##
+## 	@param[in] text	start of Unicode sequence
+## 	@param[in] textlen   number of Unicodes to analyse
+## 	@param[in] baseDir   direction of paragraph (specify FZ_BIDI_NEUTRAL to force auto-detection)
+## 	@param[in] callback  function to be called for each fragment
+## 	@param[in] arg	data to be passed to the callback function
+## 	@param[in] flags     flags to control operation (see fz_bidi_flags above)
+##
+type
+  FzBitmap* {.importc: "fz_bitmap", header: "bitmap.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    w* {.importc: "w".}: cint
+    h* {.importc: "h".}: cint
+    stride* {.importc: "stride".}: cint
+    n* {.importc: "n".}: cint
+    xres* {.importc: "xres".}: cint
+    yres* {.importc: "yres".}: cint
+    samples* {.importc: "samples".}: ptr cuchar
+## *
+## 	Take an additional reference to the bitmap. The same pointer
+## 	is returned.
+##
+## 	Never throws exceptions.
+##
+type
+  FzHalftone* = fzHalftone
+## *
+## 	Make a bitmap from a pixmap and a halftone.
+##
+## 	pix: The pixmap to generate from. Currently must be a single
+## 	color component with no alpha.
+##
+## 	ht: The halftone to use. NULL implies the default halftone.
+##
+## 	Returns the resultant bitmap. Throws exceptions in the case of
+## 	failure to allocate.
+##
+type
+  FzBuffer* {.importc: "fz_buffer", header: "buffer.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    data* {.importc: "data".}: ptr cuchar
+    cap* {.importc: "cap".}: csize_t
+    len* {.importc: "len".}: csize_t
+    unusedBits* {.importc: "unused_bits".}: cint
+    shared* {.importc: "shared".}: cint
+## *
+## 	Take an additional reference to the buffer. The same pointer
+## 	is returned.
+##
+## 	Never throws exceptions.
+##
+type
+  FzColorspace* = fzColorspace
+## *
+## 	Pixmaps represent a set of pixels for a 2 dimensional region of
+## 	a plane. Each pixel has n components per pixel. The components
+## 	are in the order process-components, spot-colors, alpha, where
+## 	there can be 0 of any of those types. The data is in
+## 	premultiplied alpha when rendering, but non-premultiplied for
+## 	colorspace conversions and rescaling.
+##
+type
+  FzPixmap* = fzPixmap
+##  Color handling parameters: rendering intent, overprint, etc.
+type
+  FzColorParams* {.importc: "fz_color_params", header: "color.h", bycopy.} = object
+    ri* {.importc: "ri".}: uint8T ##  rendering intent
+    bp* {.importc: "bp".}: uint8T ##  black point compensation
+    op* {.importc: "op".}: uint8T ##  overprinting
+    opm* {.importc: "opm".}: uint8T ##  overprint mode
+## !!!Ignored construct:  FZ_DATA extern const fz_color_params fz_default_color_params ;
+## Error: token expected: ; but got: [identifier]!!!
+## *
+## 	Map from (case sensitive) rendering intent string to enumeration
+## 	value.
+##
+type
+  FzColorspaceType* {.size: sizeof(cint).} = enum
+    FZ_COLORSPACE_NONE, FZ_COLORSPACE_GRAY, FZ_COLORSPACE_RGB, FZ_COLORSPACE_BGR,
+    FZ_COLORSPACE_CMYK, FZ_COLORSPACE_LAB, FZ_COLORSPACE_INDEXED,
+    FZ_COLORSPACE_SEPARATION
+type
+  FzDefaultColorspaces* {.importc: "fz_default_colorspaces", header: "color.h",
+                         bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    gray* {.importc: "gray".}: ptr FzColorspace
+    rgb* {.importc: "rgb".}: ptr FzColorspace
+    cmyk* {.importc: "cmyk".}: ptr FzColorspace
+    oi* {.importc: "oi".}: ptr FzColorspace
+## *
+## 	Create a new default colorspace structure with values inherited
+## 	from the context, and return a reference to it.
+##
+## 	These can be overridden using fz_set_default_xxxx.
+##
+## 	These should not be overridden while more than one caller has
+## 	the reference for fear of race conditions.
+##
+## 	The caller should drop this reference once finished with it.
+##
+type
+  FzDeflateLevel* {.size: sizeof(cint).} = enum
+    FZ_DEFLATE_DEFAULT = -1, FZ_DEFLATE_NONE = 0, FZ_DEFLATE_BEST_SPEED = 1,
+    FZ_DEFLATE_BEST = 9
+## *
+## 	Returns the upper bound on the
+## 	size of flated data of length size.
+##
+type
+  INNER_C_STRUCT_compressed-buffer_77* {.importc: "fz_compression_params::no_name",
+                                        header: "compressed-buffer.h", bycopy.} = object
+    colorTransform* {.importc: "color_transform".}: cint ##  Use -1 for unset
+  INNER_C_STRUCT_compressed-buffer_77* {.importc: "fz_compression_params::no_name",
+                                        header: "compressed-buffer.h", bycopy.} = object
+    smaskInData* {.importc: "smask_in_data".}: cint
+  INNER_C_STRUCT_compressed-buffer_77* {.importc: "fz_compression_params::no_name",
+                                        header: "compressed-buffer.h", bycopy.} = object
+    globals* {.importc: "globals".}: ptr FzJbig2Globals
+    embedded* {.importc: "embedded".}: cint
+  INNER_C_STRUCT_compressed-buffer_77* {.importc: "fz_compression_params::no_name",
+                                        header: "compressed-buffer.h", bycopy.} = object
+    columns* {.importc: "columns".}: cint
+    rows* {.importc: "rows".}: cint
+    k* {.importc: "k".}: cint
+    endOfLine* {.importc: "end_of_line".}: cint
+    encodedByteAlign* {.importc: "encoded_byte_align".}: cint
+    endOfBlock* {.importc: "end_of_block".}: cint
+    blackIs1* {.importc: "black_is_1".}: cint
+    damagedRowsBeforeError* {.importc: "damaged_rows_before_error".}: cint
+  INNER_C_STRUCT_compressed-buffer_77* {.importc: "fz_compression_params::no_name",
+                                        header: "compressed-buffer.h", bycopy.} = object
+    columns* {.importc: "columns".}: cint
+    colors* {.importc: "colors".}: cint
+    predictor* {.importc: "predictor".}: cint
+    bpc* {.importc: "bpc".}: cint
+  INNER_C_STRUCT_compressed-buffer_77* {.importc: "fz_compression_params::no_name",
+                                        header: "compressed-buffer.h", bycopy.} = object
+    columns* {.importc: "columns".}: cint
+    colors* {.importc: "colors".}: cint
+    predictor* {.importc: "predictor".}: cint
+    bpc* {.importc: "bpc".}: cint
+    earlyChange* {.importc: "early_change".}: cint
+  INNER_C_UNION_compressed-buffer_77* {.importc: "fz_compression_params::no_name",
+                                       header: "compressed-buffer.h", bycopy, union.} = object
+    jpeg* {.importc: "jpeg".}: INNER_C_STRUCT_compressed-buffer_77
+    jpx* {.importc: "jpx".}: INNER_C_STRUCT_compressed-buffer_77
+    jbig2* {.importc: "jbig2".}: INNER_C_STRUCT_compressed-buffer_77
+    fax* {.importc: "fax".}: INNER_C_STRUCT_compressed-buffer_77
+    flate* {.importc: "flate".}: INNER_C_STRUCT_compressed-buffer_77
+    lzw* {.importc: "lzw".}: INNER_C_STRUCT_compressed-buffer_77
+  FzCompressionParams* {.importc: "fz_compression_params",
+                        header: "compressed-buffer.h", bycopy.} = object
+    `type`* {.importc: "type".}: cint
+    u* {.importc: "u".}: INNER_C_UNION_compressed-buffer_77
+## *
+## 	Buffers of compressed data; typically for the source data
+## 	for images.
+##
+type
+  FzCompressedBuffer* {.importc: "fz_compressed_buffer",
+                       header: "compressed-buffer.h", bycopy.} = object
+    params* {.importc: "params".}: FzCompressionParams
+    buffer* {.importc: "buffer".}: ptr FzBuffer
+## *
+## 	Return the storage size used for a buffer and its data.
+## 	Used in implementing store handling.
+##
+## 	Never throws exceptions.
+##
+type
+  FzColorspaceContext* = fzColorspaceContext
+  FzStyleContext* = fzStyleContext
+  FzTuningContext* = fzTuningContext
+  FzStore* = fzStore
+  FzGlyphCache* = fzGlyphCache
+  FzDocumentHandlerContext* = fzDocumentHandlerContext
+  FzOutput* = fzOutput
+  FzContext* = fzContext
+## *
+## 	Allocator structure; holds callbacks and private data pointer.
+##
+type
+  FzAllocContext* {.importc: "fz_alloc_context", header: "context.h", bycopy.} = object
+    user* {.importc: "user".}: pointer
+    malloc* {.importc: "malloc".}: proc (a1: pointer; a2: csize_t): pointer {.cdecl.}
+    realloc* {.importc: "realloc".}: proc (a1: pointer; a2: pointer; a3: csize_t): pointer {.
+        cdecl.}
+    free* {.importc: "free".}: proc (a1: pointer; a2: pointer) {.cdecl.}
+## *
+## 	Exception macro definitions. Just treat these as a black box -
+## 	pay no attention to the man behind the curtain.
+##
+type
+  FzLocksContext* {.importc: "fz_locks_context", header: "context.h", bycopy.} = object
+    user* {.importc: "user".}: pointer
+    lock* {.importc: "lock".}: proc (user: pointer; lock: cint) {.cdecl.}
+    unlock* {.importc: "unlock".}: proc (user: pointer; lock: cint) {.cdecl.}
+type
+  FzErrorCb* = proc (user: pointer; message: cstring) {.cdecl.}
+## *
+## 	A callback called whenever a warning message is generated.
+## 	The user pointer passed to fz_set_warning_callback() is
+## 	passed along with the warning message.
+##
+type
+  FzWarningCb* = proc (user: pointer; message: cstring) {.cdecl.}
+## *
+## 	Set the error callback. This will be called as part of the
+## 	exception handling.
+##
+## 	The callback must not throw exceptions!
+##
+type
+  FzTuneImageDecodeFn* = proc (arg: pointer; w: cint; h: cint; l2factor: cint;
+                            subarea: ptr FzIrect) {.cdecl.}
+## *
+## 	Given the source width and height of
+## 	image, together with the actual required width and height,
+## 	decide whether we should use mitchell scaling.
+##
+## 	arg: The caller supplied opaque argument.
+##
+## 	dst_w, dst_h: The actual width/height required on the target
+## 	device.
+##
+## 	src_w, src_h: The source width/height of the image.
+##
+## 	Return 0 not to use the Mitchell scaler, 1 to use the Mitchell
+## 	scaler. All other values reserved.
+##
+type
+  FzTuneImageScaleFn* = proc (arg: pointer; dstW: cint; dstH: cint; srcW: cint; srcH: cint): cint {.
+      cdecl.}
+## *
+## 	Set the tuning function to use for
+## 	image decode.
+##
+## 	image_decode: Function to use.
+##
+## 	arg: Opaque argument to be passed to tuning function.
+##
+type
+  FzErrorStackSlot* {.importc: "fz_error_stack_slot", header: "context.h", bycopy.} = object
+    buffer* {.importc: "buffer".}: FzJmpBuf
+    state* {.importc: "state".}: cint
+    code* {.importc: "code".}: cint
+    padding* {.importc: "padding".}: array[fz_Jmpbuf_Align - sizeof((int) * 2), char]
+  FzErrorContext* {.importc: "fz_error_context", header: "context.h", bycopy.} = object
+    top* {.importc: "top".}: ptr FzErrorStackSlot
+    stack* {.importc: "stack".}: array[256, FzErrorStackSlot]
+    padding* {.importc: "padding".}: FzErrorStackSlot
+    stackBase* {.importc: "stack_base".}: ptr FzErrorStackSlot
+    errcode* {.importc: "errcode".}: cint
+    printUser* {.importc: "print_user".}: pointer
+    print* {.importc: "print".}: proc (user: pointer; message: cstring) {.cdecl.}
+    message* {.importc: "message".}: array[256, char]
+  FzWarnContext* {.importc: "fz_warn_context", header: "context.h", bycopy.} = object
+    printUser* {.importc: "print_user".}: pointer
+    print* {.importc: "print".}: proc (user: pointer; message: cstring) {.cdecl.}
+    count* {.importc: "count".}: cint
+    message* {.importc: "message".}: array[256, char]
+  FzAaContext* {.importc: "fz_aa_context", header: "context.h", bycopy.} = object
+    hscale* {.importc: "hscale".}: cint
+    vscale* {.importc: "vscale".}: cint
+    scale* {.importc: "scale".}: cint
+    bits* {.importc: "bits".}: cint
+    textBits* {.importc: "text_bits".}: cint
+    minLineWidth* {.importc: "min_line_width".}: cfloat
+  FzContext* {.importc: "fz_context", header: "context.h", bycopy.} = object
+    user* {.importc: "user".}: pointer
+    alloc* {.importc: "alloc".}: FzAllocContext
+    locks* {.importc: "locks".}: FzLocksContext
+    error* {.importc: "error".}: FzErrorContext
+    warn* {.importc: "warn".}: FzWarnContext ##  unshared contexts
+    aa* {.importc: "aa".}: FzAaContext
+    seed48* {.importc: "seed48".}: array[7, uint16T]
+    when fz_Enable_Icc:
+      var iccEnabled* {.importc: "icc_enabled", header: "context.h".}: cint
+    throwOnRepair* {.importc: "throw_on_repair".}: cint ##  TODO: should these be unshared?
+    handler* {.importc: "handler".}: ptr FzDocumentHandlerContext
+    style* {.importc: "style".}: ptr FzStyleContext
+    tuning* {.importc: "tuning".}: ptr FzTuningContext ##  shared contexts
+    stddbg* {.importc: "stddbg".}: ptr FzOutput
+    font* {.importc: "font".}: ptr FzFontContext
+    colorspace* {.importc: "colorspace".}: ptr FzColorspaceContext
+    store* {.importc: "store".}: ptr FzStore
+    glyphCache* {.importc: "glyph_cache".}: ptr FzGlyphCache
+type
+  FzMd5* {.importc: "fz_md5", header: "crypt.h", bycopy.} = object
+    lo* {.importc: "lo".}: uint32T
+    hi* {.importc: "hi".}: uint32T
+    a* {.importc: "a".}: uint32T
+    b* {.importc: "b".}: uint32T
+    c* {.importc: "c".}: uint32T
+    d* {.importc: "d".}: uint32T
+    buffer* {.importc: "buffer".}: array[64, cuchar]
+## *
+## 	MD5 initialization. Begins an MD5 operation, writing a new
+## 	context.
+##
+## 	Never throws an exception.
+##
+type
+  INNER_C_UNION_crypt_88* {.importc: "fz_sha256::no_name", header: "crypt.h", bycopy,
+                           union.} = object
+    u8* {.importc: "u8".}: array[64, cuchar]
+    u32* {.importc: "u32".}: array[16, cuint]
+  FzSha256* {.importc: "fz_sha256", header: "crypt.h", bycopy.} = object
+    state* {.importc: "state".}: array[8, cuint]
+    count* {.importc: "count".}: array[2, cuint]
+    buffer* {.importc: "buffer".}: INNER_C_UNION_crypt_88
+## *
+## 	SHA256 initialization. Begins an SHA256 operation, initialising
+## 	the supplied context.
+##
+## 	Never throws an exception.
+##
+type
+  INNER_C_UNION_crypt_129* {.importc: "fz_sha512::no_name", header: "crypt.h",
+                            bycopy, union.} = object
+    u8* {.importc: "u8".}: array[128, cuchar]
+    u64* {.importc: "u64".}: array[16, uint64T]
+  FzSha512* {.importc: "fz_sha512", header: "crypt.h", bycopy.} = object
+    state* {.importc: "state".}: array[8, uint64T]
+    count* {.importc: "count".}: array[2, cuint]
+    buffer* {.importc: "buffer".}: INNER_C_UNION_crypt_129
+## *
+## 	SHA512 initialization. Begins an SHA512 operation, initialising
+## 	the supplied context.
+##
+## 	Never throws an exception.
+##
+type
+  FzSha384* = FzSha512
+## *
+## 	SHA384 initialization. Begins an SHA384 operation, initialising
+## 	the supplied context.
+##
+## 	Never throws an exception.
+##
+type
+  FzArc4* {.importc: "fz_arc4", header: "crypt.h", bycopy.} = object
+    x* {.importc: "x".}: cuint
+    y* {.importc: "y".}: cuint
+    state* {.importc: "state".}: array[256, cuchar]
+## *
+## 	RC4 initialization. Begins an RC4 operation, writing a new
+## 	context.
+##
+## 	Never throws an exception.
+##
+type
+  FzAes* {.importc: "fz_aes", header: "crypt.h", bycopy.} = object
+    nr* {.importc: "nr".}: cint  ##  number of rounds
+    rk* {.importc: "rk".}: ptr uint32T ##  AES round keys
+    buf* {.importc: "buf".}: array[68, uint32T] ##  unaligned data
+type
+  FzDeviceContainerStack* {.importc: "fz_device_container_stack",
+                           header: "device.h", bycopy.} = object
+    scissor* {.importc: "scissor".}: FzRect
+    `type`* {.importc: "type".}: cint
+    user* {.importc: "user".}: cint
+type
+  FzDevice* {.importc: "fz_device", header: "device.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    hints* {.importc: "hints".}: cint
+    flags* {.importc: "flags".}: cint
+    closeDevice* {.importc: "close_device".}: proc (a1: ptr FzContext; a2: ptr FzDevice) {.
+        cdecl.}
+    dropDevice* {.importc: "drop_device".}: proc (a1: ptr FzContext; a2: ptr FzDevice) {.
+        cdecl.}
+    fillPath* {.importc: "fill_path".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        a3: ptr FzPath; evenOdd: cint; a5: FzMatrix; a6: ptr FzColorspace;
+        color: ptr cfloat; alpha: cfloat; a9: FzColorParams) {.cdecl.}
+    strokePath* {.importc: "stroke_path".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        a3: ptr FzPath; a4: ptr FzStrokeState; a5: FzMatrix; a6: ptr FzColorspace;
+        color: ptr cfloat; alpha: cfloat; a9: FzColorParams) {.cdecl.}
+    clipPath* {.importc: "clip_path".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        a3: ptr FzPath; evenOdd: cint; a5: FzMatrix; scissor: FzRect) {.cdecl.}
+    clipStrokePath* {.importc: "clip_stroke_path".}: proc (a1: ptr FzContext;
+        a2: ptr FzDevice; a3: ptr FzPath; a4: ptr FzStrokeState; a5: FzMatrix;
+        scissor: FzRect) {.cdecl.}
+    fillText* {.importc: "fill_text".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        a3: ptr FzText; a4: FzMatrix; a5: ptr FzColorspace; color: ptr cfloat;
+        alpha: cfloat; a8: FzColorParams) {.cdecl.}
+    strokeText* {.importc: "stroke_text".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        a3: ptr FzText; a4: ptr FzStrokeState; a5: FzMatrix; a6: ptr FzColorspace;
+        color: ptr cfloat; alpha: cfloat; a9: FzColorParams) {.cdecl.}
+    clipText* {.importc: "clip_text".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        a3: ptr FzText; a4: FzMatrix; scissor: FzRect) {.cdecl.}
+    clipStrokeText* {.importc: "clip_stroke_text".}: proc (a1: ptr FzContext;
+        a2: ptr FzDevice; a3: ptr FzText; a4: ptr FzStrokeState; a5: FzMatrix;
+        scissor: FzRect) {.cdecl.}
+    ignoreText* {.importc: "ignore_text".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        a3: ptr FzText; a4: FzMatrix) {.cdecl.}
+    fillShade* {.importc: "fill_shade".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        shd: ptr FzShade; ctm: FzMatrix; alpha: cfloat; colorParams: FzColorParams) {.
+        cdecl.}
+    fillImage* {.importc: "fill_image".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        img: ptr FzImage; ctm: FzMatrix; alpha: cfloat; colorParams: FzColorParams) {.
+        cdecl.}
+    fillImageMask* {.importc: "fill_image_mask".}: proc (a1: ptr FzContext;
+        a2: ptr FzDevice; img: ptr FzImage; ctm: FzMatrix; a5: ptr FzColorspace;
+        color: ptr cfloat; alpha: cfloat; colorParams: FzColorParams) {.cdecl.}
+    clipImageMask* {.importc: "clip_image_mask".}: proc (a1: ptr FzContext;
+        a2: ptr FzDevice; img: ptr FzImage; ctm: FzMatrix; scissor: FzRect) {.cdecl.}
+    popClip* {.importc: "pop_clip".}: proc (a1: ptr FzContext; a2: ptr FzDevice) {.cdecl.}
+    beginMask* {.importc: "begin_mask".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        area: FzRect; luminosity: cint; a5: ptr FzColorspace; bc: ptr cfloat;
+        a7: FzColorParams) {.cdecl.}
+    endMask* {.importc: "end_mask".}: proc (a1: ptr FzContext; a2: ptr FzDevice) {.cdecl.}
+    beginGroup* {.importc: "begin_group".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        area: FzRect; cs: ptr FzColorspace; isolated: cint; knockout: cint;
+        blendmode: cint; alpha: cfloat) {.cdecl.}
+    endGroup* {.importc: "end_group".}: proc (a1: ptr FzContext; a2: ptr FzDevice) {.cdecl.}
+    beginTile* {.importc: "begin_tile".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        area: FzRect; view: FzRect; xstep: cfloat; ystep: cfloat; ctm: FzMatrix; id: cint): cint {.
+        cdecl.}
+    endTile* {.importc: "end_tile".}: proc (a1: ptr FzContext; a2: ptr FzDevice) {.cdecl.}
+    renderFlags* {.importc: "render_flags".}: proc (a1: ptr FzContext;
+        a2: ptr FzDevice; set: cint; clear: cint) {.cdecl.}
+    setDefaultColorspaces* {.importc: "set_default_colorspaces".}: proc (
+        a1: ptr FzContext; a2: ptr FzDevice; a3: ptr FzDefaultColorspaces) {.cdecl.}
+    beginLayer* {.importc: "begin_layer".}: proc (a1: ptr FzContext; a2: ptr FzDevice;
+        layerName: cstring) {.cdecl.}
+    endLayer* {.importc: "end_layer".}: proc (a1: ptr FzContext; a2: ptr FzDevice) {.cdecl.}
+    d1Rect* {.importc: "d1_rect".}: FzRect
+    containerLen* {.importc: "container_len".}: cint
+    containerCap* {.importc: "container_cap".}: cint
+    container* {.importc: "container".}: ptr FzDeviceContainerStack
+## *
+## 	Device calls; graphics primitives and containers.
+##
+type
+  FzCookie* {.importc: "fz_cookie", header: "device.h", bycopy.} = object
+    abort* {.importc: "abort".}: cint
+    progress* {.importc: "progress".}: cint
+    progressMax* {.importc: "progress_max".}: csize_t ##  (size_t)-1 for unknown
+    errors* {.importc: "errors".}: cint
+    incomplete* {.importc: "incomplete".}: cint
+## *
+## 	Create a device to print a debug trace of all device calls.
+##
+type
+  FzDrawOptions* {.importc: "fz_draw_options", header: "device.h", bycopy.} = object
+    rotate* {.importc: "rotate".}: cint
+    xResolution* {.importc: "x_resolution".}: cint
+    yResolution* {.importc: "y_resolution".}: cint
+    width* {.importc: "width".}: cint
+    height* {.importc: "height".}: cint
+    colorspace* {.importc: "colorspace".}: ptr FzColorspace
+    alpha* {.importc: "alpha".}: cint
+    graphics* {.importc: "graphics".}: cint
+    text* {.importc: "text".}: cint
+## !!!Ignored construct:  FZ_DATA extern const char * fz_draw_options_usage ;
+## Error: token expected: ; but got: *!!!
+## *
+## 	Parse draw device options from a comma separated key-value string.
+##
+type
+  FzDisplayList* = fzDisplayList
+## *
+## 	Create an empty display list.
+##
+## 	A display list contains drawing commands (text, images, etc.).
+## 	Use fz_new_list_device for populating the list.
+##
+## 	mediabox: Bounds of the page (in points) represented by the
+## 	display list.
+##
+type
+  FzPage* = fzPage
+  FzBookmark* = intptrT
+## *
+## 	Simple constructor for fz_locations.
+##
+type
+  FzPermission* {.size: sizeof(cint).} = enum
+    FZ_PERMISSION_COPY = 'c', FZ_PERMISSION_EDIT = 'e', FZ_PERMISSION_ANNOTATE = 'n',
+    FZ_PERMISSION_PRINT = 'p'
+## *
+## 	Type for a function to be called when
+## 	the reference count for the fz_document drops to 0. The
+## 	implementation should release any resources held by the
+## 	document. The actual document pointer will be freed by the
+## 	caller.
+##
+type
+  FzDocumentDropFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument) {.cdecl.}
+## *
+## 	Type for a function to be
+## 	called to enquire whether the document needs a password
+## 	or not. See fz_needs_password for more information.
+##
+type
+  FzDocumentNeedsPasswordFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument): cint {.
+      cdecl.}
+## *
+## 	Type for a function to be
+## 	called to attempt to authenticate a password. See
+## 	fz_authenticate_password for more information.
+##
+type
+  FzDocumentAuthenticatePasswordFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument;
+      password: cstring): cint {.cdecl.}
+## *
+## 	Type for a function to be
+## 	called to see if a document grants a certain permission. See
+## 	fz_document_has_permission for more information.
+##
+type
+  FzDocumentHasPermissionFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument;
+                                  permission: FzPermission): cint {.cdecl.}
+## *
+## 	Type for a function to be called to
+## 	load the outlines for a document. See fz_document_load_outline
+## 	for more information.
+##
+type
+  FzDocumentLoadOutlineFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument): ptr FzOutline {.
+      cdecl.}
+## *
+## 	Type for a function to be called to obtain an outline iterator
+## 	for a document. See fz_document_outline_iterator for more information.
+##
+type
+  FzDocumentOutlineIteratorFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument): ptr FzOutlineIterator {.
+      cdecl.}
+## *
+## 	Type for a function to be called to lay
+## 	out a document. See fz_layout_document for more information.
+##
+type
+  FzDocumentLayoutFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument; w: cfloat;
+                           h: cfloat; em: cfloat) {.cdecl.}
+## *
+## 	Type for a function to be called to
+## 	resolve an internal link to a location (chapter/page number
+## 	tuple). See fz_resolve_link_dest for more information.
+##
+type
+  FzDocumentResolveLinkDestFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument;
+                                    uri: cstring): FzLinkDest {.cdecl.}
+## *
+## 	Type for a function to be called to
+## 	create an internal link to a destination (chapter/page/x/y/w/h/zoom/type
+## 	tuple). See fz_resolve_link_dest for more information.
+##
+type
+  FzDocumentFormatLinkUriFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument;
+                                  dest: FzLinkDest): cstring {.cdecl.}
+## *
+## 	Type for a function to be called to
+## 	count the number of chapters in a document. See
+## 	fz_count_chapters for more information.
+##
+type
+  FzDocumentCountChaptersFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument): cint {.
+      cdecl.}
+## *
+## 	Type for a function to be called to
+## 	count the number of pages in a document. See fz_count_pages for
+## 	more information.
+##
+type
+  FzDocumentCountPagesFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument; chapter: cint): cint {.
+      cdecl.}
+## *
+## 	Type for a function to load a given
+## 	page from a document. See fz_load_page for more information.
+##
+type
+  FzDocumentLoadPageFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument; chapter: cint;
+                             page: cint): ptr FzPage {.cdecl.}
+## *
+## 	Type for a function to query
+## 	a document's metadata. See fz_lookup_metadata for more
+## 	information.
+##
+type
+  FzDocumentLookupMetadataFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument;
+                                   key: cstring; buf: cstring; size: cint): cint {.
+      cdecl.}
+## *
+## 	Type for a function to set
+## 	a document's metadata. See fz_set_metadata for more
+## 	information.
+##
+type
+  FzDocumentSetMetadataFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument; key: cstring;
+                                value: cstring): cint {.cdecl.}
+## *
+## 	Return output intent color space if it exists
+##
+type
+  FzDocumentOutputIntentFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument): ptr FzColorspace {.
+      cdecl.}
+## *
+## 	Write document accelerator data
+##
+type
+  FzDocumentOutputAcceleratorFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument;
+                                      `out`: ptr FzOutput) {.cdecl.}
+## *
+## 	Type for a function to make
+## 	a bookmark. See fz_make_bookmark for more information.
+##
+type
+  FzDocumentMakeBookmarkFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument;
+                                 loc: FzLocation): FzBookmark {.cdecl.}
+## *
+## 	Type for a function to lookup a bookmark.
+## 	See fz_lookup_bookmark for more information.
+##
+type
+  FzDocumentLookupBookmarkFn* = proc (ctx: ptr FzContext; doc: ptr FzDocument;
+                                   mark: FzBookmark): FzLocation {.cdecl.}
+## *
+## 	Type for a function to release all the
+## 	resources held by a page. Called automatically when the
+## 	reference count for that page reaches zero.
+##
+type
+  FzPageDropPageFn* = proc (ctx: ptr FzContext; page: ptr FzPage) {.cdecl.}
+## *
+## 	Type for a function to return the
+## 	bounding box of a page. See fz_bound_page for more
+## 	information.
+##
+type
+  FzPageBoundPageFn* = proc (ctx: ptr FzContext; page: ptr FzPage): FzRect {.cdecl.}
+## *
+## 	Type for a function to run the
+## 	contents of a page. See fz_run_page_contents for more
+## 	information.
+##
+type
+  FzPageRunPageFn* = proc (ctx: ptr FzContext; page: ptr FzPage; dev: ptr FzDevice;
+                        transform: FzMatrix; cookie: ptr FzCookie) {.cdecl.}
+## *
+## 	Type for a function to load the links
+## 	from a page. See fz_load_links for more information.
+##
+type
+  FzPageLoadLinksFn* = proc (ctx: ptr FzContext; page: ptr FzPage): ptr FzLink {.cdecl.}
+## *
+## 	Type for a function to
+## 	obtain the details of how this page should be presented when
+## 	in presentation mode. See fz_page_presentation for more
+## 	information.
+##
+type
+  FzPagePagePresentationFn* = proc (ctx: ptr FzContext; page: ptr FzPage;
+                                 transition: ptr FzTransition; duration: ptr cfloat): ptr FzTransition {.
+      cdecl.}
+## *
+## 	Type for a function to enable/
+## 	disable separations on a page. See fz_control_separation for
+## 	more information.
+##
+type
+  FzPageControlSeparationFn* = proc (ctx: ptr FzContext; page: ptr FzPage;
+                                  separation: cint; disable: cint) {.cdecl.}
+## *
+## 	Type for a function to detect
+## 	whether a given separation is enabled or disabled on a page.
+## 	See FZ_SEPARATION_DISABLED for more information.
+##
+type
+  FzPageSeparationDisabledFn* = proc (ctx: ptr FzContext; page: ptr FzPage;
+                                   separation: cint): cint {.cdecl.}
+## *
+## 	Type for a function to retrieve
+## 	details of separations on a page. See fz_get_separations
+## 	for more information.
+##
+type
+  FzPageSeparationsFn* = proc (ctx: ptr FzContext; page: ptr FzPage): ptr FzSeparations {.
+      cdecl.}
+## *
+## 	Type for a function to retrieve
+## 	whether or not a given page uses overprint.
+##
+type
+  FzPageUsesOverprintFn* = proc (ctx: ptr FzContext; page: ptr FzPage): cint {.cdecl.}
+## *
+## 	Type for a function to create a link on a page.
+##
+type
+  FzPageCreateLinkFn* = proc (ctx: ptr FzContext; page: ptr FzPage; bbox: FzRect;
+                           uri: cstring): ptr FzLink {.cdecl.}
+## *
+## 	Type for a function to delete a link on a page.
+##
+type
+  FzPageDeleteLinkFn* = proc (ctx: ptr FzContext; page: ptr FzPage; link: ptr FzLink) {.
+      cdecl.}
+## *
+## 	Function type to open a document from a file.
+##
+## 	filename: file to open
+##
+## 	Pointer to opened document. Throws exception in case of error.
+##
+type
+  FzDocumentOpenFn* = proc (ctx: ptr FzContext; filename: cstring): ptr FzDocument {.cdecl.}
+## *
+## 	Function type to open a
+## 	document from a file.
+##
+## 	stream: fz_stream to read document data from. Must be
+## 	seekable for formats that require it.
+##
+## 	Pointer to opened document. Throws exception in case of error.
+##
+type
+  FzDocumentOpenWithStreamFn* = proc (ctx: ptr FzContext; stream: ptr FzStream): ptr FzDocument {.
+      cdecl.}
+## *
+## 	Function type to open a document from a
+## 	file, with accelerator data.
+##
+## 	filename: file to open
+##
+## 	accel: accelerator file
+##
+## 	Pointer to opened document. Throws exception in case of error.
+##
+type
+  FzDocumentOpenAccelFn* = proc (ctx: ptr FzContext; filename: cstring; accel: cstring): ptr FzDocument {.
+      cdecl.}
+## *
+## 	Function type to open a document from a file,
+## 	with accelerator data.
+##
+## 	stream: fz_stream to read document data from. Must be
+## 	seekable for formats that require it.
+##
+## 	accel: fz_stream to read accelerator data from. Must be
+## 	seekable for formats that require it.
+##
+## 	Pointer to opened document. Throws exception in case of error.
+##
+type
+  FzDocumentOpenAccelWithStreamFn* = proc (ctx: ptr FzContext; stream: ptr FzStream;
+                                        accel: ptr FzStream): ptr FzDocument {.cdecl.}
+## *
+## 	Recognize a document type from
+## 	a magic string.
+##
+## 	magic: string to recognise - typically a filename or mime
+## 	type.
+##
+## 	Returns a number between 0 (not recognized) and 100
+## 	(fully recognized) based on how certain the recognizer
+## 	is that this is of the required type.
+##
+type
+  FzDocumentRecognizeFn* = proc (ctx: ptr FzContext; magic: cstring): cint {.cdecl.}
+## *
+## 	Type for a function to be called when processing an already opened page.
+## 	See fz_process_opened_pages.
+##
+type
+  FzProcessOpenedPageFn* = proc (ctx: ptr FzContext; page: ptr FzPage; state: pointer): pointer {.
+      cdecl.}
+## *
+## 	Register a handler for a document type.
+##
+## 	handler: The handler to register.
+##
+type
+  FzPage* {.importc: "fz_page", header: "document.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    doc* {.importc: "doc".}: ptr FzDocument ##  reference to parent document
+    chapter* {.importc: "chapter".}: cint ##  chapter number
+    number* {.importc: "number".}: cint ##  page number in chapter
+    incomplete* {.importc: "incomplete".}: cint ##  incomplete from progressive loading; don't cache!
+    dropPage* {.importc: "drop_page".}: ptr FzPageDropPageFn
+    boundPage* {.importc: "bound_page".}: ptr FzPageBoundPageFn
+    runPageContents* {.importc: "run_page_contents".}: ptr FzPageRunPageFn
+    runPageAnnots* {.importc: "run_page_annots".}: ptr FzPageRunPageFn
+    runPageWidgets* {.importc: "run_page_widgets".}: ptr FzPageRunPageFn
+    loadLinks* {.importc: "load_links".}: ptr FzPageLoadLinksFn
+    pagePresentation* {.importc: "page_presentation".}: ptr FzPagePagePresentationFn
+    controlSeparation* {.importc: "control_separation".}: ptr FzPageControlSeparationFn
+    separationDisabled* {.importc: "separation_disabled".}: ptr FzPageSeparationDisabledFn
+    separations* {.importc: "separations".}: ptr FzPageSeparationsFn
+    overprint* {.importc: "overprint".}: ptr FzPageUsesOverprintFn
+    createLink* {.importc: "create_link".}: ptr FzPageCreateLinkFn
+    deleteLink* {.importc: "delete_link".}: ptr FzPageDeleteLinkFn
+    prev* {.importc: "prev".}: ptr ptr FzPage
+    next* {.importc: "next".}: ptr FzPage ##  linked list of currently open pages
+## *
+## 	Structure definition is public so other classes can
+## 	derive from it. Callers should not access the members
+## 	directly, though implementations will need initialize
+## 	functions directly.
+##
+type
+  FzDocument* {.importc: "fz_document", header: "document.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    dropDocument* {.importc: "drop_document".}: ptr FzDocumentDropFn
+    needsPassword* {.importc: "needs_password".}: ptr FzDocumentNeedsPasswordFn
+    authenticatePassword* {.importc: "authenticate_password".}: ptr FzDocumentAuthenticatePasswordFn
+    hasPermission* {.importc: "has_permission".}: ptr FzDocumentHasPermissionFn
+    loadOutline* {.importc: "load_outline".}: ptr FzDocumentLoadOutlineFn
+    outlineIterator* {.importc: "outline_iterator".}: ptr FzDocumentOutlineIteratorFn
+    layout* {.importc: "layout".}: ptr FzDocumentLayoutFn
+    makeBookmark* {.importc: "make_bookmark".}: ptr FzDocumentMakeBookmarkFn
+    lookupBookmark* {.importc: "lookup_bookmark".}: ptr FzDocumentLookupBookmarkFn
+    resolveLinkDest* {.importc: "resolve_link_dest".}: ptr FzDocumentResolveLinkDestFn
+    formatLinkUri* {.importc: "format_link_uri".}: ptr FzDocumentFormatLinkUriFn
+    countChapters* {.importc: "count_chapters".}: ptr FzDocumentCountChaptersFn
+    countPages* {.importc: "count_pages".}: ptr FzDocumentCountPagesFn
+    loadPage* {.importc: "load_page".}: ptr FzDocumentLoadPageFn
+    lookupMetadata* {.importc: "lookup_metadata".}: ptr FzDocumentLookupMetadataFn
+    setMetadata* {.importc: "set_metadata".}: ptr FzDocumentSetMetadataFn
+    getOutputIntent* {.importc: "get_output_intent".}: ptr FzDocumentOutputIntentFn
+    outputAccelerator* {.importc: "output_accelerator".}: ptr FzDocumentOutputAcceleratorFn
+    didLayout* {.importc: "did_layout".}: cint
+    isReflowable* {.importc: "is_reflowable".}: cint
+    open* {.importc: "open".}: ptr FzPage ##  linked list of currently open pages
+  FzDocumentHandler* {.importc: "fz_document_handler", header: "document.h", bycopy.} = object
+    recognize* {.importc: "recognize".}: ptr FzDocumentRecognizeFn
+    open* {.importc: "open".}: ptr FzDocumentOpenFn
+    openWithStream* {.importc: "open_with_stream".}: ptr FzDocumentOpenWithStreamFn
+    extensions* {.importc: "extensions".}: cstringArray
+    mimetypes* {.importc: "mimetypes".}: cstringArray
+    openAccel* {.importc: "open_accel".}: ptr FzDocumentOpenAccelFn
+    openAccelWithStream* {.importc: "open_accel_with_stream".}: ptr FzDocumentOpenAccelWithStreamFn
+type
+  Header* = object
+    fname*: string
+    txt*: string
+    c2nimFile*:string
+  Binding* = object
+    fname*: string
+    txt*: string
+    ignore*: bool
+#[ let beg = """
+type
+  FzJbig2Globals* = fzJbig2Globals
+  FzRange* {.importc: "fz_range", header: "filter.h", bycopy.} = object
+    offset* {.importc: "offset".}: int64T
+    length* {.importc: "length".}: uint64T
+## *
+## 	The null filter reads a specified amount of data from the
+## 	substream.
+##
+type
+  FzFont* = fzFont
+## *
+## 	Fonts come in two variants:
+## 	Regular fonts are handled by FreeType.
+## 	Type 3 fonts have callbacks to the interpreter.
+##
+## *
+## 	Retrieve the FT_Face handle
+## 	for the font.
+##
+## 	font: The font to query
+##
+## 	Returns the FT_Face handle for the font, or NULL
+## 	if not a freetype handled font. (Cast to void *
+## 	to avoid nasty header exposure).
+##
+type
+  FzFontFlagsT* {.importc: "fz_font_flags_t", header: "font.h", bycopy.} = object
+    isMono* {.importc: "is_mono".} {.bitsize: 1.}: cuint
+    isSerif* {.importc: "is_serif".} {.bitsize: 1.}: cuint
+    isBold* {.importc: "is_bold".} {.bitsize: 1.}: cuint
+    isItalic* {.importc: "is_italic".} {.bitsize: 1.}: cuint
+    ftSubstitute* {.importc: "ft_substitute".} {.bitsize: 1.}: cuint ##  use substitute metrics
+    ftStretch* {.importc: "ft_stretch".} {.bitsize: 1.}: cuint ##  stretch to match PDF metrics
+    fakeBold* {.importc: "fake_bold".} {.bitsize: 1.}: cuint ##  synthesize bold
+    fakeItalic* {.importc: "fake_italic".} {.bitsize: 1.}: cuint ##  synthesize italic
+    hasOpentype* {.importc: "has_opentype".} {.bitsize: 1.}: cuint ##  has opentype shaping tables
+    invalidBbox* {.importc: "invalid_bbox".} {.bitsize: 1.}: cuint
+    cjk* {.importc: "cjk".} {.bitsize: 1.}: cuint
+    cjkLang* {.importc: "cjk_lang".} {.bitsize: 2.}: cuint ##  CNS, GB, JAPAN, or KOREA
+## *
+## 	Retrieve a pointer to the font flags
+## 	for a given font. These can then be updated as required.
+##
+## 	font: The font to query
+##
+## 	Returns a pointer to the flags structure (or NULL, if
+## 	the font is NULL).
+##
+type
+  FzShaperDataT* {.importc: "fz_shaper_data_t", header: "font.h", bycopy.} = object
+    shaperHandle* {.importc: "shaper_handle".}: pointer
+    destroy* {.importc: "destroy".}: proc (ctx: ptr FzContext; a2: pointer) {.cdecl.} ##  Destructor for shape_handle
+## *
+## 	Retrieve a pointer to the shaper data
+## 	structure for the given font.
+##
+## 	font: The font to query.
+##
+## 	Returns a pointer to the shaper data structure (or NULL if
+## 	font is NULL).
+##
+type
+  FzLoadSystemFontFn* = proc (ctx: ptr FzContext; name: cstring; bold: cint; italic: cint;
+                           needsExactMetrics: cint): ptr FzFont {.cdecl.}
+## *
+## 	Type for user supplied cjk font loading hook.
+##
+## 	name: The name of the font to load.
+##
+## 	ordering: The ordering for which to load the font (e.g.
+## 	FZ_ADOBE_KOREA)
+##
+## 	serif: 1 if a serif font is desired, 0 otherwise.
+##
+## 	Returns a new font handle, or NULL if no font found (or on error).
+##
+type
+  FzLoadSystemCjkFontFn* = proc (ctx: ptr FzContext; name: cstring; ordering: cint;
+                              serif: cint): ptr FzFont {.cdecl.}
+## *
+## 	Type for user supplied fallback font loading hook.
+##
+## 	name: The name of the font to load.
+##
+## 	script: UCDN script enum.
+##
+## 	language: FZ_LANG enum.
+##
+## 	serif, bold, italic: boolean style flags.
+##
+## 	Returns a new font handle, or NULL if no font found (or on error).
+##
+type
+  FzLoadSystemFallbackFontFn* = proc (ctx: ptr FzContext; script: cint; language: cint;
+                                   serif: cint; bold: cint; italic: cint): ptr FzFont {.
+      cdecl.}
+## *
+## 	Install functions to allow MuPDF to request fonts from the
+## 	system.
+##
+## 	Only one set of hooks can be in use at a time.
+##
+type
+  FzFont* {.importc: "fz_font", header: "font.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    name* {.importc: "name".}: array[32, char]
+    buffer* {.importc: "buffer".}: ptr FzBuffer
+    flags* {.importc: "flags".}: FzFontFlagsT
+    ftFace* {.importc: "ft_face".}: pointer ##  has an FT_Face if used
+    shaperData* {.importc: "shaper_data".}: FzShaperDataT
+    t3matrix* {.importc: "t3matrix".}: FzMatrix
+    t3resources* {.importc: "t3resources".}: pointer
+    t3procs* {.importc: "t3procs".}: ptr ptr FzBuffer ##  has 256 entries if used
+    t3lists* {.importc: "t3lists".}: ptr ptr FzDisplayList ##  has 256 entries if used
+    t3widths* {.importc: "t3widths".}: ptr cfloat ##  has 256 entries if used
+    t3flags* {.importc: "t3flags".}: ptr cushort ##  has 256 entries if used
+    t3doc* {.importc: "t3doc".}: pointer ##  a pdf_document for the callback
+    t3run* {.importc: "t3run".}: proc (ctx: ptr FzContext; doc: pointer;
+                                   resources: pointer; contents: ptr FzBuffer;
+                                   dev: ptr FzDevice; ctm: FzMatrix; gstate: pointer;
+                                   defaultCs: ptr FzDefaultColorspaces) {.cdecl.}
+    t3freeres* {.importc: "t3freeres".}: proc (ctx: ptr FzContext; doc: pointer;
+        resources: pointer) {.cdecl.}
+    bbox* {.importc: "bbox".}: FzRect ##  font bbox is used only for t3 fonts
+    glyphCount* {.importc: "glyph_count".}: cint ##  per glyph bounding box cache.
+    bboxTable* {.importc: "bbox_table".}: ptr ptr FzRect
+    useGlyphBbox* {.importc: "use_glyph_bbox".}: cint ##  substitute metrics
+    widthCount* {.importc: "width_count".}: cint
+    widthDefault* {.importc: "width_default".}: cshort ##  in 1000 units
+    widthTable* {.importc: "width_table".}: ptr cshort ##  in 1000 units
+                                                  ##  cached glyph metrics
+    advanceCache* {.importc: "advance_cache".}: ptr ptr cfloat ##  cached encoding lookup
+    encodingCache* {.importc: "encoding_cache".}: array[256, ptr uint16T] ##  cached md5sum for caching
+    hasDigest* {.importc: "has_digest".}: cint
+    digest* {.importc: "digest".}: array[16, cuchar]
+type
+  FzPoint* {.importc: "fz_point", header: "geometry.h", bycopy.} = object
+    x* {.importc: "x".}: cfloat
+    y* {.importc: "y".}: cfloat
+type
+  FzRect* {.importc: "fz_rect", header: "geometry.h", bycopy.} = object
+    x0* {.importc: "x0".}: cfloat
+    y0* {.importc: "y0".}: cfloat
+    x1* {.importc: "x1".}: cfloat
+    y1* {.importc: "y1".}: cfloat
+type
+  FzIrect* {.importc: "fz_irect", header: "geometry.h", bycopy.} = object
+    x0* {.importc: "x0".}: cint
+    y0* {.importc: "y0".}: cint
+    x1* {.importc: "x1".}: cint
+    y1* {.importc: "y1".}: cint
+type
+  FzMatrix* {.importc: "fz_matrix", header: "geometry.h", bycopy.} = object
+    a* {.importc: "a".}: cfloat
+    b* {.importc: "b".}: cfloat
+    c* {.importc: "c".}: cfloat
+    d* {.importc: "d".}: cfloat
+    e* {.importc: "e".}: cfloat
+    f* {.importc: "f".}: cfloat
+## *
+## 	Identity transform matrix.
+##
+## !!!Ignored construct:  FZ_DATA extern const fz_matrix fz_identity ;
+## Error: token expected: ; but got: [identifier]!!!
+type
+  FzQuad* {.importc: "fz_quad", header: "geometry.h", bycopy.} = object
+    ul* {.importc: "ul".}: FzPoint
+    ur* {.importc: "ur".}: FzPoint
+    ll* {.importc: "ll".}: FzPoint
+    lr* {.importc: "lr".}: FzPoint
+## *
+## 	Inline convenience construction function.
+##
+type
+  FzGlyph* = fzGlyph
+## *
+## 	Return the bounding box of the glyph in pixels.
+##
+type
+  FzHashTable* = fzHashTable
+## *
+## 	Function type called when a hash table entry is dropped.
+##
+## 	Only used when the entire hash table is dropped.
+##
+type
+  FzHashTableDropFn* = proc (ctx: ptr FzContext; val: pointer) {.cdecl.}
+## *
+## 	Create a new hash table.
+##
+## 	initialsize: The initial size of the hashtable. The hashtable
+## 	may grow (double in size) if it starts to get crowded (80%
+## 	full).
+##
+## 	keylen: byte length for each key.
+##
+## 	lock: -1 for no lock, otherwise the FZ_LOCK to use to protect
+## 	this table.
+##
+## 	drop_val: Function to use to destroy values on table drop.
+##
+type
+  FzHashTableForEachFn* = proc (ctx: ptr FzContext; state: pointer; key: pointer;
+                             keylen: cint; val: pointer) {.cdecl.}
+## *
+## 	Iterate over the entries in a hash table.
+##
+type
+  FzHashTableFilterFn* = proc (ctx: ptr FzContext; state: pointer; key: pointer;
+                            keylen: cint; val: pointer): cint {.cdecl.}
+## *
+## 	Iterate over the entries in a hash table, removing all the ones where callback returns true.
+## 	Does NOT free the value of the entry, so the caller is expected to take care of this.
+##
+type
+  FzCompressedImage* = fzCompressedImage
+  FzPixmapImage* = fzPixmapImage
+## *
+## 	Called to get a handle to a pixmap from an image.
+##
+## 	image: The image to retrieve a pixmap from.
+##
+## 	subarea: The subarea of the image that we actually care about
+## 	(or NULL to indicate the whole image).
+##
+## 	ctm: Optional, unless subarea is given. If given, then on
+## 	entry this is the transform that will be applied to the complete
+## 	image. It should be updated on exit to the transform to apply to
+## 	the given subarea of the image. This is used to calculate the
+## 	desired width/height for subsampling.
+##
+## 	w: If non-NULL, a pointer to an int to be updated on exit to the
+## 	width (in pixels) that the scaled output will cover.
+##
+## 	h: If non-NULL, a pointer to an int to be updated on exit to the
+## 	height (in pixels) that the scaled output will cover.
+##
+## 	Returns a non NULL kept pixmap pointer. May throw exceptions.
+##
+type
+  FzDropImageFn* = proc (ctx: ptr FzContext; image: ptr FzImage) {.cdecl.}
+## *
+## 	Function type to get a decoded pixmap for an image.
+##
+## 	im: The image to decode.
+##
+## 	subarea: NULL, or the subarea of the image required. Expressed
+## 	in terms of a rectangle in the original width/height of the
+## 	image. If non NULL, this should be updated by the function to
+## 	the actual subarea decoded - which must include the requested
+## 	area!
+##
+## 	w, h: The actual width and height that the whole image would
+## 	need to be decoded to.
+##
+## 	l2factor: On entry, the log 2 subsample factor required. If
+## 	possible the decode process can take care of (all or some) of
+## 	this subsampling, and must then update the value so the caller
+## 	knows what remains to be done.
+##
+## 	Returns a reference to a decoded pixmap that satisfies the
+## 	requirements of the request. The caller owns the returned
+## 	reference.
+##
+type
+  FzImageGetPixmapFn* = proc (ctx: ptr FzContext; im: ptr FzImage; subarea: ptr FzIrect;
+                           w: cint; h: cint; l2factor: ptr cint): ptr FzPixmap {.cdecl.}
+## *
+## 	Function type to get the given storage
+## 	size for an image.
+##
+## 	Returns the size in bytes used for a given image.
+##
+type
+  FzImageGetSizeFn* = proc (a1: ptr FzContext; a2: ptr FzImage): csize_t {.cdecl.}
+## *
+## 	Internal function to make a new fz_image structure
+## 	for a derived class.
+##
+## 	w,h: Width and height of the created image.
+##
+## 	bpc: Bits per component.
+##
+## 	colorspace: The colorspace (determines the number of components,
+## 	and any color conversions required while decoding).
+##
+## 	xres, yres: The X and Y resolutions respectively.
+##
+## 	interpolate: 1 if interpolation should be used when decoding
+## 	this image, 0 otherwise.
+##
+## 	imagemask: 1 if this is an imagemask (i.e. transparent), 0
+## 	otherwise.
+##
+## 	decode: NULL, or a pointer to to a decode array. The default
+## 	decode array is [0 1] (repeated n times, for n color components).
+##
+## 	colorkey: NULL, or a pointer to a colorkey array. The default
+## 	colorkey array is [0 255] (repeated n times, for n color
+## 	components).
+##
+## 	mask: NULL, or another image to use as a mask for this one.
+## 	A new reference is taken to this image. Supplying a masked
+## 	image as a mask to another image is illegal!
+##
+## 	size: The size of the required allocated structure (the size of
+## 	the derived structure).
+##
+## 	get: The function to be called to obtain a decoded pixmap.
+##
+## 	get_size: The function to be called to return the storage size
+## 	used by this image.
+##
+## 	drop: The function to be called to dispose of this image once
+## 	the last reference is dropped.
+##
+## 	Returns a pointer to an allocated structure of the required size,
+## 	with the first sizeof(fz_image) bytes initialised as appropriate
+## 	given the supplied parameters, and the other bytes set to zero.
+##
+type
+  FzImage* {.importc: "fz_image", header: "image.h", bycopy.} = object
+    keyStorable* {.importc: "key_storable".}: FzKeyStorable
+    w* {.importc: "w".}: cint
+    h* {.importc: "h".}: cint
+    n* {.importc: "n".}: uint8T
+    bpc* {.importc: "bpc".}: uint8T
+    imagemask* {.importc: "imagemask".} {.bitsize: 1.}: cuint
+    interpolate* {.importc: "interpolate".} {.bitsize: 1.}: cuint
+    useColorkey* {.importc: "use_colorkey".} {.bitsize: 1.}: cuint
+    useDecode* {.importc: "use_decode".} {.bitsize: 1.}: cuint
+    invertCmykJpeg* {.importc: "invert_cmyk_jpeg".} {.bitsize: 1.}: cuint
+    decoded* {.importc: "decoded".} {.bitsize: 1.}: cuint
+    scalable* {.importc: "scalable".} {.bitsize: 1.}: cuint
+    orientation* {.importc: "orientation".}: uint8T
+    mask* {.importc: "mask".}: ptr FzImage
+    xres* {.importc: "xres".}: cint ##  As given in the image, not necessarily as rendered
+    yres* {.importc: "yres".}: cint ##  As given in the image, not necessarily as rendered
+    colorspace* {.importc: "colorspace".}: ptr FzColorspace
+    dropImage* {.importc: "drop_image".}: ptr FzDropImageFn
+    getPixmap* {.importc: "get_pixmap".}: ptr FzImageGetPixmapFn
+    getSize* {.importc: "get_size".}: ptr FzImageGetSizeFn
+    colorkey* {.importc: "colorkey".}: array[fz_Max_Colors * 2, cint]
+    decode* {.importc: "decode".}: array[fz_Max_Colors * 2, cfloat]
+## *
+## 	Request the natural resolution
+## 	of an image.
+##
+## 	xres, yres: Pointers to ints to be updated with the
+## 	natural resolution of an image (or a sensible default
+## 	if not encoded).
+##
+type
+  FzLinkSetRectFn* = proc (ctx: ptr FzContext; link: ptr FzLink; rect: FzRect) {.cdecl.}
+  FzLinkSetUriFn* = proc (ctx: ptr FzContext; link: ptr FzLink; uri: cstring) {.cdecl.}
+  FzLinkDropLinkFn* = proc (ctx: ptr FzContext; link: ptr FzLink) {.cdecl.}
+## *
+## 	fz_link is a list of interactive links on a page.
+##
+## 	There is no relation between the order of the links in the
+## 	list and the order they appear on the page. The list of links
+## 	for a given page can be obtained from fz_load_links.
+##
+## 	A link is reference counted. Dropping a reference to a link is
+## 	done by calling fz_drop_link.
+##
+## 	rect: The hot zone. The area that can be clicked in
+## 	untransformed coordinates.
+##
+## 	uri: Link destinations come in two forms: internal and external.
+## 	Internal links refer to other pages in the same document.
+## 	External links are URLs to other documents.
+##
+## 	next: A pointer to the next link on the same page.
+##
+type
+  FzLink* {.importc: "fz_link", header: "link.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    next* {.importc: "next".}: ptr FzLink
+    rect* {.importc: "rect".}: FzRect
+    uri* {.importc: "uri".}: cstring
+    setRectFn* {.importc: "set_rect_fn".}: ptr FzLinkSetRectFn
+    setUriFn* {.importc: "set_uri_fn".}: ptr FzLinkSetUriFn
+    drop* {.importc: "drop".}: ptr FzLinkDropLinkFn
+  FzLinkDestType* {.size: sizeof(cint).} = enum
+    FZ_LINK_DEST_FIT, FZ_LINK_DEST_FIT_B, FZ_LINK_DEST_FIT_H, FZ_LINK_DEST_FIT_BH,
+    FZ_LINK_DEST_FIT_V, FZ_LINK_DEST_FIT_BV, FZ_LINK_DEST_FIT_R, FZ_LINK_DEST_XYZ
+  FzLinkDest* {.importc: "fz_link_dest", header: "link.h", bycopy.} = object
+    loc* {.importc: "loc".}: FzLocation
+    `type`* {.importc: "type".}: FzLinkDestType
+    x* {.importc: "x".}: cfloat
+    y* {.importc: "y".}: cfloat
+    w* {.importc: "w".}: cfloat
+    h* {.importc: "h".}: cfloat
+    zoom* {.importc: "zoom".}: cfloat
+type
+  FzOutlineIterator* = fzOutlineIterator
+## *
+## 	Call to get the current outline item.
+##
+## 	Can return NULL. The item is only valid until the next call.
+##
+type
+  FzOutline* {.importc: "fz_outline", header: "outline.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    title* {.importc: "title".}: cstring
+    uri* {.importc: "uri".}: cstring
+    page* {.importc: "page".}: FzLocation
+    x* {.importc: "x".}: cfloat
+    y* {.importc: "y".}: cfloat
+    next* {.importc: "next".}: ptr FzOutline
+    down* {.importc: "down".}: ptr FzOutline
+    isOpen* {.importc: "is_open".}: cint
+## *
+## 	Create a new outline entry with zeroed fields for the caller
+## 	to fill in.
+##
+type
+  FzOutlineIteratorItemFn* = proc (ctx: ptr FzContext; iter: ptr FzOutlineIterator): ptr FzOutlineItem {.
+      cdecl.}
+## *
+## 	Function types for moving the iterator position.
+##
+## 	A negative return value means we could not move as requested. Otherwise:
+## 	0 = the final position has a valid item.
+## 	1 = not a valid item, but we can insert an item here.
+##
+type
+  FzOutlineIteratorNextFn* = proc (ctx: ptr FzContext; iter: ptr FzOutlineIterator): cint {.
+      cdecl.}
+  FzOutlineIteratorPrevFn* = proc (ctx: ptr FzContext; iter: ptr FzOutlineIterator): cint {.
+      cdecl.}
+  FzOutlineIteratorUpFn* = proc (ctx: ptr FzContext; iter: ptr FzOutlineIterator): cint {.
+      cdecl.}
+  FzOutlineIteratorDownFn* = proc (ctx: ptr FzContext; iter: ptr FzOutlineIterator): cint {.
+      cdecl.}
+## *
+## 	Function type for inserting a new item BEFORE the current point.
+##
+## 	Ownership of pointers are retained by the caller. The item data will be copied.
+##
+## 	After an insert, we implicitly do a next, so that a successive insert operation
+## 	would insert after the item inserted here. The return code is therefore as for next.
+##
+type
+  FzOutlineIteratorInsertFn* = proc (ctx: ptr FzContext; iter: ptr FzOutlineIterator;
+                                  item: ptr FzOutlineItem): cint {.cdecl.}
+## *
+## 	Function type for deleting the current item.
+##
+## 	This implicitly moves us to the 'next' item, and the return code is as for fz_outline_iterator_next.
+##
+type
+  FzOutlineIteratorDeleteFn* = proc (ctx: ptr FzContext; iter: ptr FzOutlineIterator): cint {.
+      cdecl.}
+## *
+## 	Function type for updating the current item properties according to the given item.
+##
+type
+  FzOutlineIteratorUpdateFn* = proc (ctx: ptr FzContext; iter: ptr FzOutlineIterator;
+                                  item: ptr FzOutlineItem) {.cdecl.}
+## *
+## 	Function type for dropping the current iterator.
+##
+type
+  FzOutlineIteratorDropFn* = proc (ctx: ptr FzContext; iter: ptr FzOutlineIterator) {.
+      cdecl.}
+## !!!Ignored construct:  # fz_new_derived_outline_iter ( CTX , TYPE , DOC ) ( ( TYPE * ) Memento_label ( fz_new_outline_iterator_of_size ( ctx , sizeof ( TYPE ) , DOC ) , # ) ) [NewLine] fz_outline_iterator * fz_new_outline_iterator_of_size ( fz_context * ctx , size_t size , fz_document * doc ) ;
+## Error: identifier expected, but got: (!!!
+type
+  FzOutlineIterator* {.importc: "fz_outline_iterator", header: "outline.h", bycopy.} = object
+    drop* {.importc: "drop".}: ptr FzOutlineIteratorDropFn ##  Functions
+    item* {.importc: "item".}: ptr FzOutlineIteratorItemFn
+    next* {.importc: "next".}: ptr FzOutlineIteratorNextFn
+    prev* {.importc: "prev".}: ptr FzOutlineIteratorPrevFn
+    up* {.importc: "up".}: ptr FzOutlineIteratorUpFn
+    down* {.importc: "down".}: ptr FzOutlineIteratorDownFn
+    insert* {.importc: "insert".}: ptr FzOutlineIteratorInsertFn
+    update* {.importc: "update".}: ptr FzOutlineIteratorUpdateFn
+    del* {.importc: "del".}: ptr FzOutlineIteratorDeleteFn ##  Common state
+    doc* {.importc: "doc".}: ptr FzDocument
+type
+  FzOutputWriteFn* = proc (ctx: ptr FzContext; state: pointer; data: pointer; n: csize_t) {.
+      cdecl.}
+## *
+## 	A function type for use when implementing
+## 	fz_outputs. The supplied function of this type is called when
+## 	fz_seek_output is requested.
+##
+## 	state: The output stream state to seek within.
+##
+## 	offset, whence: as defined for fs_seek_output.
+##
+type
+  FzOutputSeekFn* = proc (ctx: ptr FzContext; state: pointer; offset: int64T; whence: cint) {.
+      cdecl.}
+## *
+## 	A function type for use when implementing
+## 	fz_outputs. The supplied function of this type is called when
+## 	fz_tell_output is requested.
+##
+## 	state: The output stream state to report on.
+##
+## 	Returns the offset within the output stream.
+##
+type
+  FzOutputTellFn* = proc (ctx: ptr FzContext; state: pointer): int64T {.cdecl.}
+## *
+## 	A function type for use when implementing
+## 	fz_outputs. The supplied function of this type is called
+## 	when the output stream is closed, to flush any pending writes.
+##
+type
+  FzOutputCloseFn* = proc (ctx: ptr FzContext; state: pointer) {.cdecl.}
+## *
+## 	A function type for use when implementing
+## 	fz_outputs. The supplied function of this type is called
+## 	when the output stream is dropped, to release the stream
+## 	specific state information.
+##
+type
+  FzOutputDropFn* = proc (ctx: ptr FzContext; state: pointer) {.cdecl.}
+## *
+## 	A function type for use when implementing
+## 	fz_outputs. The supplied function of this type is called
+## 	when the fz_stream_from_output is called.
+##
+type
+  FzStreamFromOutputFn* = proc (ctx: ptr FzContext; state: pointer): ptr FzStream {.cdecl.}
+## *
+## 	A function type for use when implementing
+## 	fz_outputs. The supplied function of this type is called
+## 	when fz_truncate_output is called to truncate the file
+## 	at that point.
+##
+type
+  FzTruncateFn* = proc (ctx: ptr FzContext; state: pointer) {.cdecl.}
+  FzOutput* {.importc: "fz_output", header: "output.h", bycopy.} = object
+    state* {.importc: "state".}: pointer
+    write* {.importc: "write".}: ptr FzOutputWriteFn
+    seek* {.importc: "seek".}: ptr FzOutputSeekFn
+    tell* {.importc: "tell".}: ptr FzOutputTellFn
+    close* {.importc: "close".}: ptr FzOutputCloseFn
+    drop* {.importc: "drop".}: ptr FzOutputDropFn
+    asStream* {.importc: "as_stream".}: ptr FzStreamFromOutputFn
+    truncate* {.importc: "truncate".}: ptr FzTruncateFn
+    bp* {.importc: "bp".}: cstring
+    wp* {.importc: "wp".}: cstring
+    ep* {.importc: "ep".}: cstring ##  If buffered is non-zero, then we have that many
+                               ##  bits (1-7) waiting to be written in bits.
+    buffered* {.importc: "buffered".}: cint
+    bits* {.importc: "bits".}: cint
+## *
+## 	Create a new output object with the given
+## 	internal state and function pointers.
+##
+## 	state: Internal state (opaque to everything but implementation).
+##
+## 	write: Function to output a given buffer.
+##
+## 	close: Cleanup function to destroy state when output closed.
+## 	May permissibly be null.
+##
+type
+  FzLinecap* {.size: sizeof(cint).} = enum
+    FZ_LINECAP_BUTT = 0, FZ_LINECAP_ROUND = 1, FZ_LINECAP_SQUARE = 2,
+    FZ_LINECAP_TRIANGLE = 3
+  FzLinejoin* {.size: sizeof(cint).} = enum
+    FZ_LINEJOIN_MITER = 0, FZ_LINEJOIN_ROUND = 1, FZ_LINEJOIN_BEVEL = 2,
+    FZ_LINEJOIN_MITER_XPS = 3
+  FzStrokeState* {.importc: "fz_stroke_state", header: "path.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    startCap* {.importc: "start_cap".}: FzLinecap
+    dashCap* {.importc: "dash_cap".}: FzLinecap
+    endCap* {.importc: "end_cap".}: FzLinecap
+    linejoin* {.importc: "linejoin".}: FzLinejoin
+    linewidth* {.importc: "linewidth".}: cfloat
+    miterlimit* {.importc: "miterlimit".}: cfloat
+    dashPhase* {.importc: "dash_phase".}: cfloat
+    dashLen* {.importc: "dash_len".}: cint
+    dashList* {.importc: "dash_list".}: array[32, cfloat]
+  FzPathWalker* {.importc: "fz_path_walker", header: "path.h", bycopy.} = object
+    moveto* {.importc: "moveto".}: proc (ctx: ptr FzContext; arg: pointer; x: cfloat;
+                                     y: cfloat) {.cdecl.} ##  Compulsory ones
+    lineto* {.importc: "lineto".}: proc (ctx: ptr FzContext; arg: pointer; x: cfloat;
+                                     y: cfloat) {.cdecl.}
+    curveto* {.importc: "curveto".}: proc (ctx: ptr FzContext; arg: pointer; x1: cfloat;
+                                       y1: cfloat; x2: cfloat; y2: cfloat; x3: cfloat;
+                                       y3: cfloat) {.cdecl.}
+    closepath* {.importc: "closepath".}: proc (ctx: ptr FzContext; arg: pointer) {.cdecl.} ##  Optional ones
+    quadto* {.importc: "quadto".}: proc (ctx: ptr FzContext; arg: pointer; x1: cfloat;
+                                     y1: cfloat; x2: cfloat; y2: cfloat) {.cdecl.}
+    curvetov* {.importc: "curvetov".}: proc (ctx: ptr FzContext; arg: pointer;
+        x2: cfloat; y2: cfloat; x3: cfloat; y3: cfloat) {.cdecl.}
+    curvetoy* {.importc: "curvetoy".}: proc (ctx: ptr FzContext; arg: pointer;
+        x1: cfloat; y1: cfloat; x3: cfloat; y3: cfloat) {.cdecl.}
+    rectto* {.importc: "rectto".}: proc (ctx: ptr FzContext; arg: pointer; x1: cfloat;
+                                     y1: cfloat; x2: cfloat; y2: cfloat) {.cdecl.}
+## *
+## 	Walk the segments of a path, calling the
+## 	appropriate callback function from a given set for each
+## 	segment of the path.
+##
+## 	path: The path to walk.
+##
+## 	walker: The set of callback functions to use. The first
+## 	4 callback pointers in the set must be non-NULL. The
+## 	subsequent ones can either be supplied, or can be left
+## 	as NULL, in which case the top 4 functions will be
+## 	called as appropriate to simulate them.
+##
+## 	arg: An opaque argument passed in to each callback.
+##
+## 	Exceptions will only be thrown if the underlying callback
+## 	functions throw them.
+##
+type
+  FzOverprint* = fzOverprint
+## *
+## 	Return the bounding box for a pixmap.
+##
+type
+  FzPixmap* {.importc: "fz_pixmap", header: "pixmap.h", bycopy.} = object
+    storable* {.importc: "storable".}: FzStorable
+    x* {.importc: "x".}: cint
+    y* {.importc: "y".}: cint
+    w* {.importc: "w".}: cint
+    h* {.importc: "h".}: cint
+    n* {.importc: "n".}: cuchar
+    s* {.importc: "s".}: cuchar
+    alpha* {.importc: "alpha".}: cuchar
+    flags* {.importc: "flags".}: cuchar
+    stride* {.importc: "stride".}: PtrdiffT
+    seps* {.importc: "seps".}: ptr FzSeparations
+    xres* {.importc: "xres".}: cint
+    yres* {.importc: "yres".}: cint
+    colorspace* {.importc: "colorspace".}: ptr FzColorspace
+    samples* {.importc: "samples".}: ptr cuchar
+    underlying* {.importc: "underlying".}: ptr FzPixmap
+type
+  FzPool* = fzPool
+## *
+## 	Create a new pool to allocate from.
+##
+type
+  INNER_C_STRUCT_shade_101* {.importc: "fz_shade::no_name", header: "shade.h", bycopy.} = object
+    extend* {.importc: "extend".}: array[2, cint]
+    coords* {.importc: "coords".}: array[2, array[3, cfloat]] ##  (x,y,r) twice
+  INNER_C_STRUCT_shade_101* {.importc: "fz_shade::no_name", header: "shade.h", bycopy.} = object
+    vprow* {.importc: "vprow".}: cint
+    bpflag* {.importc: "bpflag".}: cint
+    bpcoord* {.importc: "bpcoord".}: cint
+    bpcomp* {.importc: "bpcomp".}: cint
+    x0* {.importc: "x0".}: cfloat
+    x1* {.importc: "x1".}: cfloat
+    y0* {.importc: "y0".}: cfloat
+    y1* {.importc: "y1".}: cfloat
+    c0* {.importc: "c0".}: array[fz_Max_Colors, cfloat]
+    c1* {.importc: "c1".}: array[fz_Max_Colors, cfloat]
+  INNER_C_STRUCT_shade_101* {.importc: "fz_shade::no_name", header: "shade.h", bycopy.} = object
+    matrix* {.importc: "matrix".}: FzMatrix
+    xdivs* {.importc: "xdivs".}: cint
+    ydivs* {.importc: "ydivs".}: cint
+    domain* {.importc: "domain".}: array[2, array[2, cfloat]]
+    fnVals* {.importc: "fn_vals".}: ptr cfloat
+  INNER_C_UNION_shade_101* {.importc: "fz_shade::no_name", header: "shade.h", bycopy,
+                            union.} = object
+    lOrR* {.importc: "l_or_r".}: INNER_C_STRUCT_shade_101
+    m* {.importc: "m".}: INNER_C_STRUCT_shade_101
+    f* {.importc: "f".}: INNER_C_STRUCT_shade_101
+  FzShade* {.importc: "fz_shade", header: "shade.h", bycopy.} = object
+    storable* {.importc: "storable".}: FzStorable
+    bbox* {.importc: "bbox".}: FzRect ##  can be fz_infinite_rect
+    colorspace* {.importc: "colorspace".}: ptr FzColorspace
+    matrix* {.importc: "matrix".}: FzMatrix ##  matrix from pattern dict
+    useBackground* {.importc: "use_background".}: cint ##  background color for fills but not 'sh'
+    background* {.importc: "background".}: array[fz_Max_Colors, cfloat] ##  Just to be confusing, PDF Shadings of Type 1 (Function Based
+                                                                   ##  Shadings), do NOT use_function, but all the others do. This
+                                                                   ##  is because Type 1 shadings take 2 inputs, whereas all the
+                                                                   ##  others (when used with a function take 1 input. The type 1
+                                                                   ##  data is in the 'f' field of the union below.
+    useFunction* {.importc: "use_function".}: cint
+    function* {.importc: "function".}: array[256, array[fz_Max_Colors + 1, cfloat]]
+    `type`* {.importc: "type".}: cint ##  function, linear, radial, mesh
+    u* {.importc: "u".}: INNER_C_UNION_shade_101
+    buffer* {.importc: "buffer".}: ptr FzCompressedBuffer
+## *
+## 	Increment the reference count for the shade structure. The
+## 	same pointer is returned.
+##
+## 	Never throws exceptions.
+##
+type
+  FzShadeColorCache* = fzShadeColorCache
+type
+  FzVertex* {.importc: "fz_vertex", header: "shade.h", bycopy.} = object
+    p* {.importc: "p".}: FzPoint
+    c* {.importc: "c".}: array[fz_Max_Colors, cfloat]
+## *
+## 	Callback function type for use with
+## 	fz_process_shade.
+##
+## 	arg: Opaque pointer from fz_process_shade caller.
+##
+## 	v: Pointer to a fz_vertex structure to populate.
+##
+## 	c: Pointer to an array of floats used to populate v.
+##
+type
+  FzShadePrepareFn* = proc (ctx: ptr FzContext; arg: pointer; v: ptr FzVertex;
+                         c: ptr cfloat) {.cdecl.}
+## *
+## 	Callback function type for use with
+## 	fz_process_shade.
+##
+## 	arg: Opaque pointer from fz_process_shade caller.
+##
+## 	av, bv, cv: Pointers to a fz_vertex structure describing
+## 	the corner locations and colors of a triangle to be
+## 	filled.
+##
+type
+  FzShadeProcessFn* = proc (ctx: ptr FzContext; arg: pointer; av: ptr FzVertex;
+                         bv: ptr FzVertex; cv: ptr FzVertex) {.cdecl.}
+## *
+## 	Process a shade, using supplied callback functions. This
+## 	decomposes the shading to a mesh (even ones that are not
+## 	natively meshes, such as linear or radial shadings), and
+## 	processes triangles from those meshes.
+##
+## 	shade: The shade to process.
+##
+## 	ctm: The transform to use
+##
+## 	prepare: Callback function to 'prepare' each vertex.
+## 	This function is passed an array of floats, and populates
+## 	a fz_vertex structure.
+##
+## 	process: This function is passed 3 pointers to vertex
+## 	structures, and actually performs the processing (typically
+## 	filling the area between the vertexes).
+##
+## 	process_arg: An opaque argument passed through from caller
+## 	to callback functions.
+##
+type
+  FzStoreDropFn* = proc (a1: ptr FzContext; a2: ptr FzStorable) {.cdecl.}
+## *
+## 	Any storable object should include an fz_storable structure
+## 	at the start (by convention at least) of their structure.
+## 	(Unless it starts with an fz_key_storable, see below).
+##
+type
+  FzStorable* {.importc: "fz_storable", header: "store.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    drop* {.importc: "drop".}: ptr FzStoreDropFn
+## *
+## 	Any storable object that can appear in the key of another
+## 	storable object should include an fz_key_storable structure
+## 	at the start (by convention at least) of their structure.
+##
+type
+  FzKeyStorable* {.importc: "fz_key_storable", header: "store.h", bycopy.} = object
+    storable* {.importc: "storable".}: FzStorable
+    storeKeyRefs* {.importc: "store_key_refs".}: cshort
+## *
+## 	Macro to initialise a storable object.
+##
+type
+  INNER_C_STRUCT_store_432* {.importc: "fz_store_hash::no_name", header: "store.h",
+                             bycopy.} = object
+    `ptr`* {.importc: "ptr".}: pointer
+    i* {.importc: "i".}: cint
+  INNER_C_STRUCT_store_432* {.importc: "fz_store_hash::no_name", header: "store.h",
+                             bycopy.} = object
+    `ptr`* {.importc: "ptr".}: pointer
+    i* {.importc: "i".}: cint
+    r* {.importc: "r".}: FzIrect
+  INNER_C_STRUCT_store_432* {.importc: "fz_store_hash::no_name", header: "store.h",
+                             bycopy.} = object
+    id* {.importc: "id".}: cint
+    hasShape* {.importc: "has_shape".}: char
+    hasGroupAlpha* {.importc: "has_group_alpha".}: char
+    m* {.importc: "m".}: array[4, cfloat]
+    `ptr`* {.importc: "ptr".}: pointer
+  INNER_C_STRUCT_store_432* {.importc: "fz_store_hash::no_name", header: "store.h",
+                             bycopy.} = object
+    srcMd5* {.importc: "src_md5".}: array[16, cuchar]
+    dstMd5* {.importc: "dst_md5".}: array[16, cuchar]
+    ri* {.importc: "ri".} {.bitsize: 2.}: cuint
+    bp* {.importc: "bp".} {.bitsize: 1.}: cuint
+    format* {.importc: "format".} {.bitsize: 1.}: cuint
+    proof* {.importc: "proof".} {.bitsize: 1.}: cuint
+    srcExtras* {.importc: "src_extras".} {.bitsize: 5.}: cuint
+    dstExtras* {.importc: "dst_extras".} {.bitsize: 5.}: cuint
+    copySpots* {.importc: "copy_spots".} {.bitsize: 1.}: cuint
+    bgr* {.importc: "bgr".} {.bitsize: 1.}: cuint
+  INNER_C_UNION_store_432* {.importc: "fz_store_hash::no_name", header: "store.h",
+                            bycopy, union.} = object
+    pi* {.importc: "pi".}: INNER_C_STRUCT_store_432 ##  8 or 12 bytes
+    pir* {.importc: "pir".}: INNER_C_STRUCT_store_432 ##  24 or 28 bytes
+    im* {.importc: "im".}: INNER_C_STRUCT_store_432 ##  28 or 32 bytes
+    link* {.importc: "link".}: INNER_C_STRUCT_store_432 ##  36 bytes
+  FzStoreHash* {.importc: "fz_store_hash", header: "store.h", bycopy.} = object
+    drop* {.importc: "drop".}: ptr FzStoreDropFn
+    u* {.importc: "u".}: INNER_C_UNION_store_432
+##  40 or 44 bytes
+## *
+## 	Every type of object to be placed into the store defines an
+## 	fz_store_type. This contains the pointers to functions to
+## 	make hashes, manipulate keys, and check for needing reaping.
+##
+type
+  FzStoreType* {.importc: "fz_store_type", header: "store.h", bycopy.} = object
+    name* {.importc: "name".}: cstring
+    makeHashKey* {.importc: "make_hash_key".}: proc (ctx: ptr FzContext;
+        hash: ptr FzStoreHash; key: pointer): cint {.cdecl.}
+    keepKey* {.importc: "keep_key".}: proc (ctx: ptr FzContext; key: pointer): pointer {.
+        cdecl.}
+    dropKey* {.importc: "drop_key".}: proc (ctx: ptr FzContext; key: pointer) {.cdecl.}
+    cmpKey* {.importc: "cmp_key".}: proc (ctx: ptr FzContext; a: pointer; b: pointer): cint {.
+        cdecl.}
+    formatKey* {.importc: "format_key".}: proc (ctx: ptr FzContext; buf: cstring;
+        size: csize_t; key: pointer) {.cdecl.}
+    needsReap* {.importc: "needs_reap".}: proc (ctx: ptr FzContext; key: pointer): cint {.
+        cdecl.}
+## *
+## 	Create a new store inside the context
+##
+## 	max: The maximum size (in bytes) that the store is allowed to
+## 	grow to. FZ_STORE_UNLIMITED means no limit.
+##
+type
+  FzStoreFilterFn* = proc (ctx: ptr FzContext; arg: pointer; key: pointer): cint {.cdecl.}
+## *
+## 	Filter every element in the store with a matching type with the
+## 	given function.
+##
+## 	If the function returns 1 for an element, drop the element.
+##
+type
+  FzWriteStoryPosition* {.importc: "fz_write_story_position",
+                         header: "story-writer.h", bycopy.} = object
+    element* {.importc: "element".}: FzStoryElementPosition
+    pageNum* {.importc: "page_num".}: cint
+##
+##  A set of fz_write_story_position items; used with
+##  fz_write_stabilized_story().
+##
+type
+  FzWriteStoryPositions* {.importc: "fz_write_story_positions",
+                          header: "story-writer.h", bycopy.} = object
+    positions* {.importc: "positions".}: ptr FzWriteStoryPosition
+    num* {.importc: "num".}: cint
+##
+##  Callback type used by fz_write_story() and fz_write_stabilized_story().
+##
+##  Should set *rect to rect number <num>. If this is on a new page should also
+##  set *mediabox and return 1, otherwise return 0.
+##
+##   ref:
+##       As passed to fz_write_story() or fz_write_stabilized_story().
+##   num:
+##       The rect number. Will typically increment by one each time, being reset
+##       to zero when fz_write_stabilized_story() starts a new iteration.
+##   filled:
+##       From earlier internal call to fz_place_story().
+##   rect:
+##       Out param.
+##   ctm:
+##       Out param, defaults to fz_identity.
+##   mediabox:
+##       Out param, only used if we return 1.
+##
+type
+  FzWriteStoryRectfn* = proc (ctx: ptr FzContext; `ref`: pointer; num: cint;
+                           filled: FzRect; rect: ptr FzRect; ctm: ptr FzMatrix;
+                           mediabox: ptr FzRect): cint {.cdecl.}
+##
+##  Callback used by fz_write_story() to report information about element
+##  positions. Slightly different from fz_story_position_callback() because
+##  <position> also includes the page number.
+##
+##   ref:
+##       As passed to fz_write_story() or fz_write_stabilized_story().
+##   position:
+##       Called via internal call to fz_story_position_callback().
+##
+type
+  FzWriteStoryPositionfn* = proc (ctx: ptr FzContext; `ref`: pointer;
+                               position: ptr FzWriteStoryPosition) {.cdecl.}
+##
+##  Callback for fz_write_story(), called twice for each page, before (after=0)
+##  and after (after=1) the story is written.
+##
+##   ref:
+##       As passed to fz_write_story() or fz_write_stabilized_story().
+##   page_num:
+##       Page number, starting from 1.
+##   mediabox:
+##       As returned from fz_write_story_rectfn().
+##   dev:
+##       Created from the fz_writer passed to fz_write_story() or
+##       fz_write_stabilized_story().
+##   after:
+##       0 - before writing the story.
+##       1 - after writing the story.
+##
+type
+  FzWriteStoryPagefn* = proc (ctx: ptr FzContext; `ref`: pointer; pageNum: cint;
+                           mediabox: FzRect; dev: ptr FzDevice; after: cint) {.cdecl.}
+##
+##  Callback type for fz_write_stabilized_story().
+##
+##  Should populate the supplied buffer with html content for use with internal
+##  calls to fz_new_story(). This may include extra content derived from
+##  information in <positions>, for example a table of contents.
+##
+##   ref:
+##       As passed to fz_write_stabilized_story().
+##   positions:
+##       Information from previous iteration.
+##   buffer:
+##       Where to write the new content. Will be initially empty.
+##
+type
+  FzWriteStoryContentfn* = proc (ctx: ptr FzContext; `ref`: pointer;
+                              positions: ptr FzWriteStoryPositions;
+                              buffer: ptr FzBuffer) {.cdecl.}
+##
+##  Places and writes a story to a fz_document_writer. Avoids the need
+##  for calling code to implement a loop that calls fz_place_story()
+##  and fz_draw_story() etc, at the expense of having to provide a
+##  fz_write_story_rectfn() callback.
+##
+##   story:
+##       The story to place and write.
+##   writer:
+##       Where to write the story; can be NULL.
+##   rectfn:
+##       Should return information about the rect to be used in the next
+##       internal call to fz_place_story().
+##   rectfn_ref:
+##       Passed to rectfn().
+##   positionfn:
+##       If not NULL, is called via internal calls to fz_story_positions().
+##   positionfn_ref:
+##       Passed to positionfn().
+##   pagefn:
+##       If not NULL, called at start and end of each page (before and after all
+##       story content has been written to the device).
+##   pagefn_ref:
+##       Passed to pagefn().
+##
+type
+  FzStory* = fzStoryS
+##
+## 	Create a text story using styled html.
+##
+## 	Passing a NULL buffer will be treated as an empty document.
+## 	Passing a NULL user_css will be treated as an empty CSS string.
+## 	A non-NULL archive will allow images etc to be loaded. The
+## 	story keeps its own reference, so the caller can drop its
+## 	reference after this call.
+##
+type
+  FzStoryElementPosition* {.importc: "fz_story_element_position",
+                           header: "story.h", bycopy.} = object
+    depth* {.importc: "depth".}: cint ##  The overall depth of this element in the box structure.
+                                  ##  This can be used to compare the relative depths of different
+                                  ##  elements, but shouldn't be relied upon not to change between
+                                  ##  different versions of MuPDF.
+    ##  The heading level of this element. 0 if not a header, or 1-6 for h1-h6.
+    heading* {.importc: "heading".}: cint ##  The id for this element.
+    id* {.importc: "id".}: cstring ##  The href for this element.
+    href* {.importc: "href".}: cstring ##  The rectangle for this element.
+    rect* {.importc: "rect".}: FzRect ##  The immediate text for this element.
+    text* {.importc: "text".}: cstring ##  This indicates whether this opens and/or closes this element.
+                                   ##
+                                   ##  As we traverse the tree we do a depth first search. In order for
+                                   ##  the caller of fz_story_positions to know whether a given element
+                                   ##  is inside another element, we therefore announce 'start' and 'stop'
+                                   ##  for each element. For instance, with:
+                                   ##
+                                   ##    <div id="part1">
+                                   ##     <h1>Chapter 1</h1>...
+                                   ##     <h1>Chapter 2</h1>...
+                                   ##     ...
+                                   ##    </div>
+                                   ##    <div id="part2">
+                                   ##     <h1>Chapter 10</h1>...
+                                   ##     <h1>Chapter 11</h1>...
+                                   ##     ...
+                                   ##    </div>
+                                   ##
+                                   ##  We would announce:
+                                   ##    + id='part1' (open)
+                                   ##    + header=1 "Chapter 1" (open/close)
+                                   ##    + header=1 "Chapter 2" (open/close)
+                                   ##    ...
+                                   ##    + id='part1' (close)
+                                   ##    + id='part2' (open)
+                                   ##    + header=1 "Chapter 10" (open/close)
+                                   ##    + header=1 "Chapter 11" (open/close)
+                                   ##    ...
+                                   ##    + id='part2' (close)
+                                   ##
+                                   ##  If bit 0 is set, then this 'opens' the element.
+                                   ##  If bit 1 is set, then this 'closes' the element.
+                                   ##
+    openClose* {.importc: "open_close".}: cint ##  A count of the number of rectangles that the layout code has split the
+                                           ##  story into so far. After the first layout, this will be 1. If a
+                                           ##  layout is repeated, this number is not incremented.
+    rectangleNum* {.importc: "rectangle_num".}: cint
+  FzStoryPositionCallback* = proc (ctx: ptr FzContext; arg: pointer;
+                                a3: ptr FzStoryElementPosition) {.cdecl.}
+##
+## 	Enumerate the positions for key blocks in the story.
+##
+## 	This will cause the supplied function to be called with details of each
+## 	element in the story that is either a header, or has an id.
+##
+type
+  FzStream* = fzStream
+## *
+## 	Open the named file and wrap it in a stream.
+##
+## 	filename: Path to a file. On non-Windows machines the filename
+## 	should be exactly as it would be passed to fopen(2). On Windows
+## 	machines, the path should be UTF-8 encoded so that non-ASCII
+## 	characters can be represented. Other platforms do the encoding
+## 	as standard anyway (and in most cases, particularly for MacOS
+## 	and Linux, the encoding they use is UTF-8 anyway).
+##
+type
+  FzStreamNextFn* = proc (ctx: ptr FzContext; stm: ptr FzStream; max: csize_t): cint {.cdecl.}
+## *
+## 	A function type for use when implementing
+## 	fz_streams. The supplied function of this type is called
+## 	when the stream is dropped, to release the stream specific
+## 	state information.
+##
+## 	state: The stream state to release.
+##
+type
+  FzStreamDropFn* = proc (ctx: ptr FzContext; state: pointer) {.cdecl.}
+## *
+## 	A function type for use when implementing
+## 	fz_streams. The supplied function of this type is called when
+## 	fz_seek is requested, and the arguments are as defined for
+## 	fz_seek.
+##
+## 	The stream can find it's private state in stm->state.
+##
+type
+  FzStreamSeekFn* = proc (ctx: ptr FzContext; stm: ptr FzStream; offset: int64T;
+                       whence: cint) {.cdecl.}
+  FzStream* {.importc: "fz_stream", header: "stream.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    error* {.importc: "error".}: cint
+    eof* {.importc: "eof".}: cint
+    progressive* {.importc: "progressive".}: cint
+    pos* {.importc: "pos".}: int64T
+    avail* {.importc: "avail".}: cint
+    bits* {.importc: "bits".}: cint
+    rp* {.importc: "rp".}: ptr cuchar
+    wp* {.importc: "wp".}: ptr cuchar
+    state* {.importc: "state".}: pointer
+    next* {.importc: "next".}: ptr FzStreamNextFn
+    drop* {.importc: "drop".}: ptr FzStreamDropFn
+    seek* {.importc: "seek".}: ptr FzStreamSeekFn
+## *
+## 	Create a new stream object with the given
+## 	internal state and function pointers.
+##
+## 	state: Internal state (opaque to everything but implementation).
+##
+## 	next: Should provide the next set of bytes (up to max) of stream
+## 	data. Return the number of bytes read, or EOF when there is no
+## 	more data.
+##
+## 	drop: Should clean up and free the internal state. May not
+## 	throw exceptions.
+##
+type
+  FzLayoutLine* {.importc: "fz_layout_line", header: "structured-text.h", bycopy.} = object
+    x* {.importc: "x".}: cfloat
+    y* {.importc: "y".}: cfloat
+    fontSize* {.importc: "font_size".}: cfloat
+    p* {.importc: "p".}: cstring ##  location in source text of start of line
+    text* {.importc: "text".}: ptr FzLayoutChar
+    next* {.importc: "next".}: ptr FzLayoutLine
+  FzLayoutBlock* {.importc: "fz_layout_block", header: "structured-text.h", bycopy.} = object
+    pool* {.importc: "pool".}: ptr FzPool
+    matrix* {.importc: "matrix".}: FzMatrix
+    invMatrix* {.importc: "inv_matrix".}: FzMatrix
+    head* {.importc: "head".}: ptr FzLayoutLine
+    tailp* {.importc: "tailp".}: ptr ptr FzLayoutLine
+    textTailp* {.importc: "text_tailp".}: ptr ptr FzLayoutChar
+## *
+## 	Create a new layout block, with new allocation pool, zero
+## 	matrices, and initialise linked pointers.
+##
+type
+  FzStextChar* = fzStextChar
+  FzStextLine* = fzStextLine
+  FzStextBlock* = fzStextBlock
+## *
+## 	FZ_STEXT_PRESERVE_LIGATURES: If this option is activated
+## 	ligatures are passed through to the application in their
+## 	original form. If this option is deactivated ligatures are
+## 	expanded into their constituent parts, e.g. the ligature ffi is
+## 	expanded into three separate characters f, f and i.
+##
+## 	FZ_STEXT_PRESERVE_WHITESPACE: If this option is activated
+## 	whitespace is passed through to the application in its original
+## 	form. If this option is deactivated any type of horizontal
+## 	whitespace (including horizontal tabs) will be replaced with
+## 	space characters of variable width.
+##
+## 	FZ_STEXT_PRESERVE_IMAGES: If this option is set, then images
+## 	will be stored in the structured text structure. The default is
+## 	to ignore all images.
+##
+## 	FZ_STEXT_INHIBIT_SPACES: If this option is set, we will not try
+## 	to add missing space characters where there are large gaps
+## 	between characters.
+##
+## 	FZ_STEXT_DEHYPHENATE: If this option is set, hyphens at the
+## 	end of a line will be removed and the lines will be merged.
+##
+## 	FZ_STEXT_PRESERVE_SPANS: If this option is set, spans on the same line
+## 	will not be merged. Each line will thus be a span of text with the same
+## 	font, colour, and size.
+##
+## 	FZ_STEXT_MEDIABOX_CLIP: If this option is set, characters entirely
+## 	outside each page's mediabox will be ignored.
+##
+type
+  FzStextPage* {.importc: "fz_stext_page", header: "structured-text.h", bycopy.} = object
+    pool* {.importc: "pool".}: ptr FzPool
+    mediabox* {.importc: "mediabox".}: FzRect
+    firstBlock* {.importc: "first_block".}: ptr FzStextBlock
+    lastBlock* {.importc: "last_block".}: ptr FzStextBlock
+type
+  INNER_C_STRUCT_structured-text_197* {.importc: "no_name",
+                                       header: "structured-text.h", bycopy.} = object
+    firstLine* {.importc: "first_line".}: ptr FzStextLine
+    lastLine* {.importc: "last_line".}: ptr FzStextLine
+  INNER_C_STRUCT_structured-text_197* {.importc: "no_name",
+                                       header: "structured-text.h", bycopy.} = object
+    transform* {.importc: "transform".}: FzMatrix
+    image* {.importc: "image".}: ptr FzImage
+  INNER_C_UNION_structured-text_197* {.importc: "no_name",
+                                      header: "structured-text.h", bycopy, union.} = object
+    t* {.importc: "t".}: INNER_C_STRUCT_structured-text_197
+    i* {.importc: "i".}: INNER_C_STRUCT_structured-text_197
+  FzStextBlock* {.importc: "fz_stext_block", header: "structured-text.h", bycopy.} = object
+    `type`* {.importc: "type".}: cint
+    bbox* {.importc: "bbox".}: FzRect
+    u* {.importc: "u".}: INNER_C_UNION_structured-text_197
+    prev* {.importc: "prev".}: ptr FzStextBlock
+    next* {.importc: "next".}: ptr FzStextBlock
+## *
+## 	A text line is a list of characters that share a common baseline.
+##
+type
+  FzStextLine* {.importc: "fz_stext_line", header: "structured-text.h", bycopy.} = object
+    wmode* {.importc: "wmode".}: cint ##  0 for horizontal, 1 for vertical
+    dir* {.importc: "dir".}: FzPoint ##  normalized direction of baseline
+    bbox* {.importc: "bbox".}: FzRect
+    firstChar* {.importc: "first_char".}: ptr FzStextChar
+    lastChar* {.importc: "last_char".}: ptr FzStextChar
+    prev* {.importc: "prev".}: ptr FzStextLine
+    next* {.importc: "next".}: ptr FzStextLine
+## *
+## 	A text char is a unicode character, the style in which is
+## 	appears, and the point at which it is positioned.
+##
+type
+  FzStextChar* {.importc: "fz_stext_char", header: "structured-text.h", bycopy.} = object
+    c* {.importc: "c".}: cint
+    color* {.importc: "color".}: cint ##  sRGB hex color
+    origin* {.importc: "origin".}: FzPoint
+    quad* {.importc: "quad".}: FzQuad
+    size* {.importc: "size".}: cfloat
+    font* {.importc: "font".}: ptr FzFont
+    next* {.importc: "next".}: ptr FzStextChar
+## !!!Ignored construct:  FZ_DATA extern const char * fz_stext_options_usage ;
+## Error: token expected: ; but got: *!!!
+## *
+## 	Create an empty text page.
+##
+## 	The text page is filled out by the text device to contain the
+## 	blocks and lines of text on the page.
+##
+## 	mediabox: optional mediabox information.
+##
+type
+  FzStextOptions* {.importc: "fz_stext_options", header: "structured-text.h", bycopy.} = object
+    flags* {.importc: "flags".}: cint
+    scale* {.importc: "scale".}: cfloat
+## *
+## 	Parse stext device options from a comma separated key-value
+## 	string.
+##
+type
+  FzTextItem* {.importc: "fz_text_item", header: "text.h", bycopy.} = object
+    x* {.importc: "x".}: cfloat
+    y* {.importc: "y".}: cfloat
+    gid* {.importc: "gid".}: cint ##  -1 for one gid to many ucs mappings
+    ucs* {.importc: "ucs".}: cint ##  -1 for one ucs to many gid mappings
+type
+  FzTextLanguage* {.size: sizeof(cint).} = enum
+    FZ_LANG_UNSET = 0, FZ_LANG_ur = fz_Lang_Tag2('u', 'r'),
+    FZ_LANG_urd = fz_Lang_Tag3('u', 'r', 'd'), FZ_LANG_ko = fz_Lang_Tag2('k', 'o'),
+    FZ_LANG_ja = fz_Lang_Tag2('j', 'a'), FZ_LANG_zh = fz_Lang_Tag2('z', 'h'),
+    FZ_LANG_zhHans = fz_Lang_Tag3('z', 'h', 's'),
+    FZ_LANG_zhHant = fz_Lang_Tag3('z', 'h', 't')
+  FzTextSpan* {.importc: "fz_text_span", header: "text.h", bycopy.} = object
+    font* {.importc: "font".}: ptr FzFont
+    trm* {.importc: "trm".}: FzMatrix
+    wmode* {.importc: "wmode".} {.bitsize: 1.}: cuint ##  0 horizontal, 1 vertical
+    bidiLevel* {.importc: "bidi_level".} {.bitsize: 7.}: cuint ##  The bidirectional level of text
+    markupDir* {.importc: "markup_dir".} {.bitsize: 2.}: cuint ##  The direction of text as marked in the original document
+    language* {.importc: "language".} {.bitsize: 15.}: cuint ##  The language as marked in the original document
+    len* {.importc: "len".}: cint
+    cap* {.importc: "cap".}: cint
+    items* {.importc: "items".}: ptr FzTextItem
+    next* {.importc: "next".}: ptr FzTextSpan
+  FzText* {.importc: "fz_text", header: "text.h", bycopy.} = object
+    refs* {.importc: "refs".}: cint
+    head* {.importc: "head".}: ptr FzTextSpan
+    tail* {.importc: "tail".}: ptr FzTextSpan
+## *
+## 	Create a new empty fz_text object.
+##
+## 	Throws exception on failure to allocate.
+##
+type
+  FzTransition* {.importc: "fz_transition", header: "transition.h", bycopy.} = object
+    `type`* {.importc: "type".}: cint
+    duration* {.importc: "duration".}: cfloat ##  Effect duration (seconds)
+                                          ##  Parameters controlling the effect
+    vertical* {.importc: "vertical".}: cint ##  0 or 1
+    outwards* {.importc: "outwards".}: cint ##  0 or 1
+    direction* {.importc: "direction".}: cint ##  Degrees
+                                          ##  Potentially more to come
+                                          ##  State variables for use of the transition code
+    state0* {.importc: "state0".}: cint
+    state1* {.importc: "state1".}: cint
+## *
+## 	Generate a frame of a transition.
+##
+## 	tpix: Target pixmap
+## 	opix: Old pixmap
+## 	npix: New pixmap
+## 	time: Position within the transition (0 to 256)
+## 	trans: Transition details
+##
+## 	Returns 1 if successfully generated a frame.
+##
+## 	Note: Pixmaps must include alpha.
+##
+type
+  FzTree* = fzTree
+## *
+## 	Look for the value of a node in the tree with the given key.
+##
+## 	Simple pointer equivalence is used for key.
+##
+## 	Returns NULL for no match.
+##
+type
+  FzDocument* = fzDocument
+## *
+## 	Locations within the document are referred to in terms of
+## 	chapter and page, rather than just a page number. For some
+## 	documents (such as epub documents with large numbers of pages
+## 	broken into many chapters) this can make navigation much faster
+## 	as only the required chapter needs to be decoded at a time.
+##
+type
+  FzLocation* {.importc: "fz_location", header: "types.h", bycopy.} = object
+    chapter* {.importc: "chapter".}: cint
+    page* {.importc: "page".}: cint
+type
+  FzPclOptions* {.importc: "fz_pcl_options", header: "write-pixmap.h", bycopy.} = object
+    features* {.importc: "features".}: cint ##  Features of a particular printer
+    oddPageInit* {.importc: "odd_page_init".}: cstring
+    evenPageInit* {.importc: "even_page_init".}: cstring ##  Options for this job
+    tumble* {.importc: "tumble".}: cint
+    duplexSet* {.importc: "duplex_set".}: cint
+    duplex* {.importc: "duplex".}: cint
+    paperSize* {.importc: "paper_size".}: cint
+    manualFeedSet* {.importc: "manual_feed_set".}: cint
+    manualFeed* {.importc: "manual_feed".}: cint
+    mediaPositionSet* {.importc: "media_position_set".}: cint
+    mediaPosition* {.importc: "media_position".}: cint
+    orientation* {.importc: "orientation".}: cint ##  Updated as we move through the job
+    pageCount* {.importc: "page_count".}: cint
+## *
+## 	Initialize PCL option struct for a given preset.
+##
+## 	Currently defined presets include:
+##
+## 		generic	Generic PCL printer
+## 		ljet4	HP DeskJet
+## 		dj500	HP DeskJet 500
+## 		fs600	Kyocera FS-600
+## 		lj	HP LaserJet, HP LaserJet Plus
+## 		lj2	HP LaserJet IIp, HP LaserJet IId
+## 		lj3	HP LaserJet III
+## 		lj3d	HP LaserJet IIId
+## 		lj4	HP LaserJet 4
+## 		lj4pl	HP LaserJet 4 PL
+## 		lj4d	HP LaserJet 4d
+## 		lp2563b	HP 2563B line printer
+## 		oce9050	Oce 9050 Line printer
+##
+type
+  FzPclmOptions* {.importc: "fz_pclm_options", header: "write-pixmap.h", bycopy.} = object
+    compress* {.importc: "compress".}: cint
+    stripHeight* {.importc: "strip_height".}: cint ##  Updated as we move through the job
+    pageCount* {.importc: "page_count".}: cint
+## *
+## 	Parse PCLm options.
+##
+## 	Currently defined options and values are as follows:
+##
+## 		compression=none: No compression
+## 		compression=flate: Flate compression
+## 		strip-height=n: Strip height (default 16)
+##
+type
+  FzPdfocrOptions* {.importc: "fz_pdfocr_options", header: "write-pixmap.h", bycopy.} = object
+    compress* {.importc: "compress".}: cint
+    stripHeight* {.importc: "strip_height".}: cint
+    language* {.importc: "language".}: array[256, char]
+    datadir* {.importc: "datadir".}: array[1024, char] ##  Updated as we move through the job
+    pageCount* {.importc: "page_count".}: cint
+## *
+## 	Parse PDFOCR options.
+##
+## 	Currently defined options and values are as follows:
+##
+## 		compression=none: No compression
+## 		compression=flate: Flate compression
+## 		strip-height=n: Strip height (default 16)
+## 		ocr-language=<lang>: OCR Language (default eng)
+## 		ocr-datadir=<datadir>: OCR data path (default rely on TESSDATA_PREFIX)
+##
+type
+  FzPwgOptions* {.importc: "fz_pwg_options", header: "write-pixmap.h", bycopy.} = object
+    mediaClass* {.importc: "media_class".}: array[64, char] ##  These are not interpreted as CStrings by the writing code,
+                                                       ##  but are rather copied directly out.
+    mediaColor* {.importc: "media_color".}: array[64, char]
+    mediaType* {.importc: "media_type".}: array[64, char]
+    outputType* {.importc: "output_type".}: array[64, char]
+    advanceDistance* {.importc: "advance_distance".}: cuint
+    advanceMedia* {.importc: "advance_media".}: cint
+    collate* {.importc: "collate".}: cint
+    cutMedia* {.importc: "cut_media".}: cint
+    duplex* {.importc: "duplex".}: cint
+    insertSheet* {.importc: "insert_sheet".}: cint
+    jog* {.importc: "jog".}: cint
+    leadingEdge* {.importc: "leading_edge".}: cint
+    manualFeed* {.importc: "manual_feed".}: cint
+    mediaPosition* {.importc: "media_position".}: cuint
+    mediaWeight* {.importc: "media_weight".}: cuint
+    mirrorPrint* {.importc: "mirror_print".}: cint
+    negativePrint* {.importc: "negative_print".}: cint
+    numCopies* {.importc: "num_copies".}: cuint
+    orientation* {.importc: "orientation".}: cint
+    outputFaceUp* {.importc: "output_face_up".}: cint
+    pageSize* {.importc: "PageSize".}: array[2, cuint]
+    separations* {.importc: "separations".}: cint
+    traySwitch* {.importc: "tray_switch".}: cint
+    tumble* {.importc: "tumble".}: cint
+    mediaTypeNum* {.importc: "media_type_num".}: cint
+    compression* {.importc: "compression".}: cint
+    rowCount* {.importc: "row_count".}: cuint
+    rowFeed* {.importc: "row_feed".}: cuint
+    rowStep* {.importc: "row_step".}: cuint ##  These are not interpreted as CStrings by the writing code, but
+                                        ##  are rather copied directly out.
+    renderingIntent* {.importc: "rendering_intent".}: array[64, char]
+    pageSizeName* {.importc: "page_size_name".}: array[64, char]
+## *
+## 	Save a pixmap as a PWG.
+##
+type
+  FzDocumentWriterBeginPageFn* = proc (ctx: ptr FzContext; wri: ptr FzDocumentWriter;
+                                    mediabox: FzRect): ptr FzDevice {.cdecl.}
+## *
+## 	Function type to end the
+## 	process of writing a page to a document.
+##
+## 	dev: The device created by the begin_page function.
+##
+type
+  FzDocumentWriterEndPageFn* = proc (ctx: ptr FzContext; wri: ptr FzDocumentWriter;
+                                  dev: ptr FzDevice) {.cdecl.}
+## *
+## 	Function type to end
+## 	the process of writing pages to a document.
+##
+## 	This writes any file level trailers required. After this
+## 	completes successfully the file is up to date and complete.
+##
+type
+  FzDocumentWriterCloseWriterFn* = proc (ctx: ptr FzContext; wri: ptr FzDocumentWriter) {.
+      cdecl.}
+## *
+## 	Function type to discard
+## 	an fz_document_writer. This may be called at any time during
+## 	the process to release all the resources owned by the writer.
+##
+## 	Calling drop without having previously called close may leave
+## 	the file in an inconsistent state and the user of the
+## 	fz_document_writer would need to do any cleanup required.
+##
+type
+  FzDocumentWriterDropWriterFn* = proc (ctx: ptr FzContext; wri: ptr FzDocumentWriter) {.
+      cdecl.}
+## !!!Ignored construct:  # fz_new_derived_document_writer ( CTX , TYPE , BEGIN_PAGE , END_PAGE , CLOSE , DROP ) ( ( TYPE * ) Memento_label ( fz_new_document_writer_of_size ( CTX , sizeof ( TYPE ) , BEGIN_PAGE , END_PAGE , CLOSE , DROP ) , # ) ) [NewLine] *
+## 	Look for a given option (key) in the opts string. Return 1 if
+## 	it has it, and update *val to point to the value within opts.
+##  int fz_has_option ( fz_context * ctx , const char * opts , const char * key , const char * * val ) ;
+## Error: identifier expected, but got: (!!!
+## *
+## 	Check to see if an option, a, from a string matches a reference
+## 	option, b.
+##
+## 	(i.e. a could be 'foo' or 'foo,bar...' etc, but b can only be
+## 	'foo'.)
+##
+type
+  FzPdfocrProgressFn* = proc (ctx: ptr FzContext; progressArg: pointer; page: cint;
+                           percent: cint): cint {.cdecl.}
+type
+  FzDocumentWriter* {.importc: "fz_document_writer", header: "writer.h", bycopy.} = object
+    beginPage* {.importc: "begin_page".}: ptr FzDocumentWriterBeginPageFn
+    endPage* {.importc: "end_page".}: ptr FzDocumentWriterEndPageFn
+    closeWriter* {.importc: "close_writer".}: ptr FzDocumentWriterCloseWriterFn
+    dropWriter* {.importc: "drop_writer".}: ptr FzDocumentWriterDropWriterFn
+    dev* {.importc: "dev".}: ptr FzDevice
+## *
+## 	Internal function to allocate a
+## 	block for a derived document_writer structure, with the base
+## 	structure's function pointers populated correctly, and the extra
+## 	space zero initialised.
+##
+type
+  FzXml* = fzXml
+##  For backwards compatibility
+type
+  FzXmlDoc* = FzXml
+## *
+## 	Parse the contents of buffer into a tree of xml nodes.
+##
+## 	preserve_white: whether to keep or delete all-whitespace nodes.
+##
